@@ -32,83 +32,63 @@ export default function Home() {
         <meta name="description" content="Generate AI-powered real estate videos and build wealth across multiple platforms" />
       </Head>
       
-      <div style={{ 
-        minHeight: '100vh', 
-        background: 'linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #1e293b 100%)',
-        color: 'white',
-        fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
-      }}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
         {/* Header */}
-        <header style={{ padding: '20px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '10px', background: 'linear-gradient(135deg, #10b981, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <header className="text-center py-8 border-b border-white/10">
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
             WealthyMogul.com
           </h1>
-          <p style={{ fontSize: '1.2rem', opacity: 0.8 }}>AI-Powered Real Estate Empire Builder</p>
+          <p className="text-xl opacity-80">AI-Powered Real Estate Empire Builder</p>
         </header>
 
         {/* Main Content */}
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
+        <main className="max-w-6xl mx-auto px-4 py-12">
           
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-            <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '30px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>🤖 AI Generator</div>
-              <div style={{ opacity: 0.9 }}>Create professional real estate content with OpenAI</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="bg-emerald-500/20 p-6 rounded-2xl border border-emerald-500/30">
+              <div className="text-2xl font-bold mb-2">🤖 AI Generator</div>
+              <div className="opacity-90">Create professional real estate content with OpenAI</div>
             </div>
             
-            <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '30px', borderRadius: '20px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>📺 YouTube</div>
-              <div style={{ opacity: 0.9 }}>Auto-upload to YouTube for maximum reach</div>
+            <div className="bg-red-500/20 p-6 rounded-2xl border border-red-500/30">
+              <div className="text-2xl font-bold mb-2">📺 YouTube</div>
+              <div className="opacity-90">Auto-upload to YouTube for maximum reach</div>
             </div>
             
-            <div style={{ background: 'rgba(147, 51, 234, 0.2)', padding: '30px', borderRadius: '20px', border: '1px solid rgba(147, 51, 234, 0.3)' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>📱 Instagram</div>
-              <div style={{ opacity: 0.9 }}>Cross-post as Reels for viral growth</div>
+            <div className="bg-purple-500/20 p-6 rounded-2xl border border-purple-500/30">
+              <div className="text-2xl font-bold mb-2">📱 Instagram</div>
+              <div className="opacity-90">Cross-post as Reels for viral growth</div>
             </div>
             
-            <div style={{ background: 'rgba(34, 197, 94, 0.2)', padding: '30px', borderRadius: '20px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>💰 Revenue</div>
-              <div style={{ opacity: 0.9 }}>Triple platform monetization strategy</div>
+            <div className="bg-green-500/20 p-6 rounded-2xl border border-green-500/30">
+              <div className="text-2xl font-bold mb-2">💰 Revenue</div>
+              <div className="opacity-90">Triple platform monetization strategy</div>
             </div>
           </div>
 
           {/* AI Video Generator */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '40px', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '20px' }}>🚀 AI Video Generator</h2>
-            <p style={{ fontSize: '1.1rem', opacity: 0.9, marginBottom: '30px' }}>Generate professional real estate videos with AI</p>
+          <div className="bg-white/10 p-8 rounded-2xl border border-white/20 text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">🚀 AI Video Generator</h2>
+            <p className="text-lg opacity-90 mb-8">Generate professional real estate videos with AI</p>
             
-            <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <div className="max-w-2xl mx-auto">
               <input
                 type="text"
                 placeholder="Enter video topic (e.g., 'How to Buy Your First Rental Property')"
                 value={videoTopic}
                 onChange={(e) => setVideoTopic(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '15px 20px',
-                  fontSize: '1.1rem',
-                  borderRadius: '15px',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
-                  marginBottom: '20px'
-                }}
+                className="w-full p-4 text-lg rounded-xl border border-white/30 bg-white/10 text-white placeholder-gray-400 mb-6"
               />
               
               <button
                 onClick={generateVideo}
                 disabled={generating || !videoTopic.trim()}
-                style={{
-                  background: generating ? 'rgba(107, 114, 128, 0.5)' : 'linear-gradient(135deg, #10b981, #3b82f6)',
-                  color: 'white',
-                  padding: '15px 40px',
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  borderRadius: '15px',
-                  border: 'none',
-                  cursor: generating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
+                className={`px-8 py-4 text-lg font-bold rounded-xl transition-all ${
+                  generating || !videoTopic.trim()
+                    ? 'bg-gray-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:scale-105'
+                }`}
               >
                 {generating ? '🤖 Generating AI Video...' : '⚡ Generate AI Video'}
               </button>
@@ -116,17 +96,17 @@ export default function Home() {
 
             {/* Generated Video Display */}
             {generatedVideo && (
-              <div style={{ marginTop: '40px', padding: '30px', background: 'rgba(16, 185, 129, 0.2)', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '15px' }}>✅ Video Generated Successfully!</h3>
-                <div style={{ textAlign: 'left', maxWidth: '800px', margin: '0 auto' }}>
+              <div className="mt-8 p-6 bg-emerald-500/20 rounded-2xl border border-emerald-500/30">
+                <h3 className="text-xl font-bold mb-4">✅ Video Generated Successfully!</h3>
+                <div className="text-left max-w-3xl mx-auto space-y-2">
                   <p><strong>Title:</strong> {generatedVideo.video?.title}</p>
                   <p><strong>Description:</strong> {generatedVideo.video?.description}</p>
                   <p><strong>Category:</strong> {generatedVideo.video?.category}</p>
-                  <div style={{ marginTop: '20px' }}>
-                    <button style={{ background: '#ef4444', color: 'white', padding: '10px 20px', borderRadius: '10px', border: 'none', marginRight: '10px', cursor: 'pointer' }}>
+                  <div className="flex gap-4 mt-6 justify-center">
+                    <button className="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold">
                       📺 Upload to YouTube
                     </button>
-                    <button style={{ background: '#8b5cf6', color: 'white', padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer' }}>
+                    <button className="bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold">
                       📱 Post to Instagram
                     </button>
                   </div>
@@ -136,33 +116,33 @@ export default function Home() {
           </div>
 
           {/* Revenue Dashboard */}
-          <div style={{ marginTop: '40px', background: 'rgba(255, 255, 255, 0.1)', padding: '40px', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '30px', textAlign: 'center' }}>💰 Revenue Dashboard</h2>
+          <div className="bg-white/10 p-8 rounded-2xl border border-white/20">
+            <h2 className="text-2xl font-bold mb-8 text-center">💰 Revenue Dashboard</h2>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>$0.00</div>
-                <div style={{ opacity: 0.8 }}>Platform Revenue</div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-emerald-400">$0.00</div>
+                <div className="opacity-80">Platform Revenue</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ef4444' }}>$0.00</div>
-                <div style={{ opacity: 0.8 }}>YouTube Revenue</div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-400">$0.00</div>
+                <div className="opacity-80">YouTube Revenue</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#8b5cf6' }}>$0.00</div>
-                <div style={{ opacity: 0.8 }}>Instagram Revenue</div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-400">$0.00</div>
+                <div className="opacity-80">Instagram Revenue</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#eab308' }}>$0.00</div>
-                <div style={{ opacity: 0.8 }}>Total Revenue</div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-400">$0.00</div>
+                <div className="opacity-80">Total Revenue</div>
               </div>
             </div>
           </div>
         </main>
 
         {/* Footer */}
-        <footer style={{ textAlign: 'center', padding: '40px 20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <p style={{ opacity: 0.8 }}>© 2025 WealthyMogul.com - AI-Powered Wealth Building Empire</p>
+        <footer className="text-center py-8 border-t border-white/10 mt-12">
+          <p className="opacity-80">© 2025 WealthyMogul.com - AI-Powered Wealth Building Empire</p>
         </footer>
       </div>
     </>
