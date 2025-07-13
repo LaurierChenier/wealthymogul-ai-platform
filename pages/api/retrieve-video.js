@@ -40,15 +40,46 @@ export default async function handler(req, res) {
       throw new Error(`Eden AI retrieval error: ${response.status} - ${data.detail || data.message || 'Unknown error'}`);
     }
 
+    // Extract video URL from Amazon Nova Reel response - FIXED
+    let videoUrl = null;
+    
+    // Try multiple possible URL locations in the response
+    if (data.results && data.results.amazon) {
+      videoUrl = data.results.amazon.resource_url || 
+                 data.results.amazon.video_url ||
+                 data.results.amazon.url;
+    } else if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+      videoUrl = data.results[0].resource_url || 
+                 data.results[0].video_url ||
+                 data.results[0].url;
+    } else if (data.video_url) {
+      videoUrl = data.video_url;
+    } else if (data.resource_url) {
+      videoUrl = data.resource_url;
+    }
+
     // Return video retrieval result
     const result = {
       success: true,
       publicId: publicId,
       status: data.status || 'unknown',
-      videoUrl: data.results?.[0]?.video_url || data.video_url || null,
+      videoUrl: videoUrl,
       videoData: data,
       retrievedAt: new Date().toISOString(),
-      provider: 'eden-ai'
+      provider: 'eden-ai',
+      amazonResponse: data.results?.amazon || data.results?.[0] || null,
+      debugInfo: {
+        hasResults: !!data.results,
+        hasAmazonResults: !!(data.results && data.results.amazon),
+        videoUrlFound: !!videoUrl,
+        searchPaths: [
+          'data.results.amazon.resource_url',
+          'data.results.amazon.video_url', 
+          'data.results[0].resource_url',
+          'data.video_url',
+          'data.resource_url'
+        ]
+      }
     };
 
     console.log('Video retrieval result:', JSON.stringify(result, null, 2));
