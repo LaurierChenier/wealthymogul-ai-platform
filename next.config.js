@@ -3,16 +3,25 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   trailingSlash: false,
-  output: 'standalone',
+  
+  // This is the KEY fix - tell Next.js how to handle different routes
+  async exportPathMap(defaultPathMap, { dev, dir, outDir, distDir, buildId }) {
+    // Remove API routes from static export
+    const pathMap = {}
+    for (const path in defaultPathMap) {
+      if (!path.startsWith('/api/')) {
+        pathMap[path] = defaultPathMap[path]
+      }
+    }
+    return pathMap
+  },
+  
+  // Alternative approach - disable static optimization for API routes
   experimental: {
     outputFileTracingExcludes: {
-      '*': [
-        'node_modules/@swc/core-linux-x64-gnu',
-        'node_modules/@swc/core-linux-x64-musl',
-        'node_modules/@esbuild/linux-x64',
-      ],
+      '/api/*': ['./pages/api/**/*'],
     },
-  },
+  }
 }
 
 module.exports = nextConfig
