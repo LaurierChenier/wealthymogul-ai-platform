@@ -3,79 +3,66 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { script, title } = req.body;
+  const { title, script } = req.body;
 
-  if (!script) {
-    return res.status(400).json({ error: 'Video script is required' });
+  if (!title || !script) {
+    return res.status(400).json({ error: 'Title and script are required' });
   }
 
   try {
-    console.log('Generating 30-second video with Eden AI...');
-    
-    // Create FormData for multipart/form-data
+    // Create form data for Eden AI - simplified version
     const formData = new FormData();
     formData.append('providers', 'amazon');
     formData.append('text', script);
-    formData.append('duration', '30');  // 30-second videos for real education
-    formData.append('fps', '24');
-    formData.append('dimension', '1280x720');
-    formData.append('seed', '12');
+    // Remove settings entirely to use defaults
+    // formData.append('settings', JSON.stringify({
+    //   'amazon': 'amazon.nova-reel-v1:0'
+    // }));
 
-    // Call Eden AI Video Generation API (ASYNC)
+    console.log('Sending request to Eden AI...');
+    console.log('API Key exists:', !!process.env.EDEN_AI_API_KEY);
+    console.log('API Key starts with:', process.env.EDEN_AI_API_KEY?.substring(0, 20));
+
     const response = await fetch('https://api.edenai.run/v2/video/generation_async', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.EDEN_AI_API_KEY}`,
+        'Authorization': `Bearer ${process.env.EDEN_AI_API_KEY}`
       },
       body: formData
     });
 
-    const responseText = await response.text();
-    console.log('Eden AI Raw Response:', responseText);
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-      console.log('Eden AI Parsed Data:', JSON.stringify(data, null, 2));
-    } catch (parseError) {
-      return res.status(500).json({
-        success: false,
-        error: 'Invalid JSON response from Eden AI',
-        responseText: responseText.substring(0, 1000),
-        status: response.status
-      });
-    }
+    const data = await response.json();
+    
+    console.log('Eden AI Video Generation Response Status:', response.status);
+    console.log('Eden AI Video Generation Response:', JSON.stringify(data, null, 2));
 
     if (!response.ok) {
-      throw new Error(`Eden AI error: ${response.status} - ${data.detail || data.message || 'Unknown error'}`);
+      console.error('Eden AI API Error:', data);
+      throw new Error(`Eden AI API error (${response.status}): ${JSON.stringify(data)}`);
     }
 
-    // Return success with updated duration info
-    const result = {
+    // Return the public_id for polling
+    return res.status(200).json({
       success: true,
-      title: title || 'Generated Video',
+      title: title,
       script: script,
       rawEdenResponse: data,
-      publicId: data.public_id || 'NOT_FOUND',
-      status: data.status || 'unknown',
-      message: '30-second video generation request submitted',
+      publicId: data.public_id,
+      status: data.status || 'submitted',
+      message: 'Video generation request submitted',
       generatedAt: new Date().toISOString(),
       provider: 'eden-ai',
-      duration: '30 seconds',  // Updated duration
+      duration: '6 seconds',
       resolution: '1280x720',
-      estimatedCost: '$2.50',  // Cost estimate for 30-second video
-      retrieveUrl: data.public_id ? `https://api.edenai.run/v2/video/generation_async/${data.public_id}` : 'NO_PUBLIC_ID'
-    };
-
-    console.log('Sending result:', JSON.stringify(result, null, 2));
-    res.status(200).json(result);
+      retrieveUrl: `https://api.edenai.run/v2/video/generation_async/${data.public_id}`
+    });
 
   } catch (error) {
     console.error('Video generation error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
-      error: error.message,
-      hasApiKey: !!process.env.EDEN_AI_API_KEY
+      error: 'Failed to generate video',
+      details: error.message 
     });
   }
 }
