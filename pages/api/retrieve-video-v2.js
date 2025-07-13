@@ -1,7 +1,5 @@
 // Updated: 2025-07-13 - Force deployment refresh
 export default async function handler(req, res) {
-  // ... rest of the code stays the same
-export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
