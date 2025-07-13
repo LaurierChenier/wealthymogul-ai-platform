@@ -20,9 +20,7 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     
-    console.log('=== EDEN AI RESPONSE DEBUG ===');
-    console.log('Public ID:', publicId);
-    console.log('Full Response:', JSON.stringify(data, null, 2));
+    console.log('Eden AI Response:', JSON.stringify(data, null, 2));
 
     // Check if video is still processing
     if (data.status === 'processing') {
@@ -40,228 +38,38 @@ export default async function handler(req, res) {
       console.log('Video completed! Extracting video URL...');
       
       let videoUrl = null;
-      let debugInfo = {
-        hasResults: false,
-        hasAmazonResults: false,
-        videoUrlFound: false,
-        searchPaths: [],
-        allProviderKeys: [],
-        allFields: {}
-      };
       
-      // Comprehensive URL extraction with detailed debugging
-      if (data.results) {
-        debugInfo.hasResults = true;
-        debugInfo.allProviderKeys = Object.keys(data.results);
-        console.log('Results keys:', debugInfo.allProviderKeys);
+      // Direct extraction from the known structure
+      if (data.results && data.results['amazon/amazon.nova-reel-v1:0']) {
+        const amazonResult = data.results['amazon/amazon.nova-reel-v1:0'];
+        console.log('Amazon result:', JSON.stringify(amazonResult, null, 2));
         
-        // Method 1: Check for exact amazon/amazon.nova-reel-v1:0 key
-        const amazonKey = 'amazon/amazon.nova-reel-v1:0';
-        if (data.results[amazonKey]) {
-          debugInfo.hasAmazonResults = true;
-          const amazonResult = data.results[amazonKey];
-          console.log('Amazon result found with key:', amazonKey);
-          console.log('Amazon result keys:', Object.keys(amazonResult));
-          console.log('Amazon result content:', JSON.stringify(amazonResult, null, 2));
-          
-          // Store all fields for debugging
-          debugInfo.allFields.amazonResult = amazonResult;
-          
-          // Check all possible URL fields
-          const urlFields = [
-            'video_resource_url',
-            'resource_url', 
-            'video_url',
-            'url',
-            'video_file_url',
-            'file_url',
-            'output_url',
-            'download_url',
-            'media_url',
-            'video_link',
-            'link',
-            'video_path',
-            'path',
-            'video_file',
-            'file',
-            'video_output',
-            'output',
-            'download_link',
-            'media_link',
-            'video_download_url'
-          ];
-          
-          for (const field of urlFields) {
-            debugInfo.searchPaths.push(`data.results['${amazonKey}'].${field}`);
-            if (amazonResult[field]) {
-              videoUrl = amazonResult[field];
-              debugInfo.videoUrlFound = true;
-              console.log(`Found video URL in field '${field}':`, videoUrl);
-              break;
-            }
-          }
-          
-          // Check nested objects for URLs
-          if (!videoUrl) {
-            for (const [key, value] of Object.entries(amazonResult)) {
-              if (value && typeof value === 'object') {
-                for (const field of urlFields) {
-                  debugInfo.searchPaths.push(`data.results['${amazonKey}'].${key}.${field}`);
-                  if (value[field]) {
-                    videoUrl = value[field];
-                    debugInfo.videoUrlFound = true;
-                    console.log(`Found video URL in nested field '${key}.${field}':`, videoUrl);
-                    break;
-                  }
-                }
-                if (videoUrl) break;
-              }
-            }
-          }
-        }
+        // Check all possible URL fields
+        videoUrl = amazonResult.video_resource_url || 
+                  amazonResult.resource_url || 
+                  amazonResult.video_url ||
+                  amazonResult.url ||
+                  amazonResult.download_url ||
+                  amazonResult.output_url ||
+                  amazonResult.media_url ||
+                  amazonResult.file_url;
         
-        // Method 2: Check for any amazon-related key (fuzzy matching)
-        if (!videoUrl) {
-          for (const [key, result] of Object.entries(data.results)) {
-            if (key.toLowerCase().includes('amazon') || key.toLowerCase().includes('nova')) {
-              debugInfo.hasAmazonResults = true;
-              console.log('Found Amazon-related key:', key);
-              debugInfo.searchPaths.push(`data.results['${key}'].resource_url`);
-              debugInfo.searchPaths.push(`data.results['${key}'].video_url`);
-              
-              if (result && typeof result === 'object') {
-                const urlFields = [
-                  'video_resource_url',
-                  'resource_url',
-                  'video_url',
-                  'url',
-                  'video_file_url',
-                  'file_url',
-                  'output_url',
-                  'download_url',
-                  'media_url',
-                  'video_link',
-                  'link'
-                ];
-                
-                for (const field of urlFields) {
-                  if (result[field]) {
-                    videoUrl = result[field];
-                    debugInfo.videoUrlFound = true;
-                    console.log(`Found video URL in ${key}.${field}:`, videoUrl);
-                    break;
-                  }
-                }
-                if (videoUrl) break;
-              }
-            }
-          }
-        }
-        
-        // Method 3: Loop through all results to find any video URL
-        if (!videoUrl) {
-          for (const [key, result] of Object.entries(data.results)) {
-            debugInfo.searchPaths.push(`data.results['${key}'].resource_url`);
-            if (result && typeof result === 'object') {
-              // Check all URL fields
-              const urlFields = [
-                'video_resource_url',
-                'resource_url',
-                'video_url',
-                'url',
-                'video_file_url',
-                'file_url',
-                'output_url',
-                'download_url',
-                'media_url',
-                'video_link',
-                'link',
-                'download_link',
-                'media_link',
-                'video_download_url'
-              ];
-              
-              for (const field of urlFields) {
-                if (result[field]) {
-                  videoUrl = result[field];
-                  debugInfo.videoUrlFound = true;
-                  console.log(`Found video URL in ${key}.${field}:`, videoUrl);
-                  break;
-                }
-              }
-              if (videoUrl) break;
-            }
-          }
-        }
-        
-        // Method 4: Deep scan for any URL-like strings
-        if (!videoUrl) {
-          const deepScan = (obj, path = '') => {
-            if (typeof obj === 'string') {
-              // Look for URLs that contain video-related keywords
-              if (obj.includes('http') && 
-                  (obj.includes('video') || obj.includes('mp4') || obj.includes('avi') || 
-                   obj.includes('mov') || obj.includes('webm') || obj.includes('amazon') || 
-                   obj.includes('cloudfront') || obj.includes('s3'))) {
-                console.log(`Potential video URL found at ${path}:`, obj);
-                return obj;
-              }
-            }
-            if (obj && typeof obj === 'object') {
-              for (const [key, value] of Object.entries(obj)) {
-                const found = deepScan(value, path ? `${path}.${key}` : key);
-                if (found) return found;
-              }
-            }
-            return null;
-          };
-          
-          videoUrl = deepScan(data.results);
-          if (videoUrl) {
-            debugInfo.videoUrlFound = true;
-            console.log('Found video URL in deep scan:', videoUrl);
-          }
-        }
+        console.log('Found video URL:', videoUrl);
       }
 
-      // Method 5: Check if URL is in top-level response
-      if (!videoUrl) {
-        const topLevelFields = ['video_url', 'resource_url', 'url', 'video_file_url', 'download_url'];
-        for (const field of topLevelFields) {
-          debugInfo.searchPaths.push(`data.${field}`);
-          if (data[field]) {
-            videoUrl = data[field];
-            debugInfo.videoUrlFound = true;
-            console.log(`Found video URL in top-level field '${field}':`, videoUrl);
-            break;
-          }
+      return res.status(200).json({
+        success: true,
+        publicId: publicId,
+        status: 'finished',
+        videoUrl: videoUrl,
+        videoData: data,
+        debugInfo: {
+          hasResults: !!data.results,
+          hasAmazonResults: !!(data.results && data.results['amazon/amazon.nova-reel-v1:0']),
+          videoUrlFound: !!videoUrl,
+          amazonResultKeys: data.results && data.results['amazon/amazon.nova-reel-v1:0'] ? Object.keys(data.results['amazon/amazon.nova-reel-v1:0']) : []
         }
-      }
-
-      console.log('=== URL EXTRACTION DEBUG ===');
-      console.log('Debug Info:', JSON.stringify(debugInfo, null, 2));
-      console.log('Final Video URL:', videoUrl);
-      console.log('=== END DEBUG ===');
-
-      if (videoUrl) {
-        return res.status(200).json({
-          success: true,
-          publicId: publicId,
-          status: 'completed',
-          videoUrl: videoUrl,
-          videoData: data,
-          debugInfo: debugInfo
-        });
-      } else {
-        return res.status(200).json({
-          success: true,
-          publicId: publicId,
-          status: 'finished',
-          videoUrl: null,
-          videoData: data,
-          debugInfo: debugInfo
-        });
-      }
+      });
     }
 
     // Handle error status
