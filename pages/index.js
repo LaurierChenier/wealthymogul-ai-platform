@@ -208,7 +208,7 @@ export default function HomePage() {
                 {isGeneratingVideo ? 'Creating Video...' : '🎬 Generate Actual Video'}
               </button>
               <small style={{ color: '#666' }}>
-                This will create a real video using AI (Eden AI)
+                This will create a 30-second educational video using AI (Eden AI) - Perfect for real estate tutorials!
               </small>
             </div>
 
@@ -237,7 +237,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Video Generation Results - UPDATED WITH RETRIEVAL BUTTON */}
+        {/* Video Generation Results - WITH RETRIEVAL BUTTON */}
         {actualVideo && (
           <div style={{ 
             background: '#d4edda', 
@@ -262,11 +262,14 @@ export default function HomePage() {
             <div style={{ marginBottom: '10px' }}>
               <strong>Public ID:</strong> {actualVideo.publicId || 'NOT_FOUND'}
             </div>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Estimated Cost:</strong> {actualVideo.estimatedCost || '$2.50'}
+            </div>
             
-            {/* NEW: Retrieve Video Button */}
+            {/* Retrieve Video Button */}
             {actualVideo.publicId && (
               <div style={{ marginBottom: '15px', padding: '15px', background: '#fff3cd', borderRadius: '5px' }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>📥 Get Your Video</h4>
+                <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>📥 Get Your 30-Second Video</h4>
                 <button
                   onClick={handleVideoRetrieval}
                   disabled={isRetrieving}
@@ -284,7 +287,7 @@ export default function HomePage() {
                   {isRetrieving ? 'Retrieving Video...' : '📥 Retrieve Actual Video'}
                 </button>
                 <small style={{ color: '#666' }}>
-                  Click to download your generated video file
+                  Click to download your 30-second educational video (processing takes 5-10 minutes)
                 </small>
               </div>
             )}
@@ -312,7 +315,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* NEW: Retrieved Video Section */}
+        {/* Retrieved Video Section */}
         {retrievedVideo && (
           <div style={{ 
             background: '#d1ecf1', 
@@ -321,20 +324,21 @@ export default function HomePage() {
             padding: '20px',
             marginTop: '20px'
           }}>
-            <h3 style={{ color: '#0c5460', marginBottom: '15px' }}>🎬 Video Retrieved Successfully!</h3>
+            <h3 style={{ color: '#0c5460', marginBottom: '15px' }}>🎬 30-Second Video Retrieved Successfully!</h3>
             <div style={{ marginBottom: '10px' }}>
               <strong>Status:</strong> {retrievedVideo.status}
             </div>
             <div style={{ marginBottom: '15px' }}>
               <strong>Video URL:</strong> {retrievedVideo.videoUrl ? 
                 <a href={retrievedVideo.videoUrl} target="_blank" rel="noopener noreferrer" style={{color: '#007bff'}}>
-                  Download Video
-                </a> : 'Processing...'}
+                  Download 30-Second Video
+                </a> : 'Processing... (this takes 5-10 minutes for 30-second videos)'}
             </div>
             
             {/* Show video player if URL is available */}
             {retrievedVideo.videoUrl && (
               <div style={{ marginBottom: '15px' }}>
+                <h4 style={{ color: '#0c5460' }}>Your AI-Generated Real Estate Video:</h4>
                 <video 
                   controls 
                   style={{ width: '100%', maxWidth: '600px', height: 'auto' }}
@@ -342,6 +346,9 @@ export default function HomePage() {
                 >
                   Your browser does not support the video tag.
                 </video>
+                <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>
+                  Perfect for Instagram Reels, YouTube Shorts, and TikTok!
+                </p>
               </div>
             )}
             
@@ -440,7 +447,7 @@ export default function HomePage() {
           boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
         }}>
           <h3 style={{ color: '#333' }}>🤖 AI Content Generation</h3>
-          <p style={{ color: '#666' }}>Generate wealth-building video scripts, titles, and descriptions instantly</p>
+          <p style={{ color: '#666' }}>Generate 30-second wealth-building video content perfect for social media</p>
         </div>
         <div style={{ 
           background: 'rgba(255,255,255,0.95)', 
@@ -449,7 +456,7 @@ export default function HomePage() {
           boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
         }}>
           <h3 style={{ color: '#333' }}>📱 Multi-Platform Publishing</h3>
-          <p style={{ color: '#666' }}>Automatically distribute content to YouTube and Instagram</p>
+          <p style={{ color: '#666' }}>Perfect for Instagram Reels, YouTube Shorts, and TikTok</p>
         </div>
         <div style={{ 
           background: 'rgba(255,255,255,0.95)', 
