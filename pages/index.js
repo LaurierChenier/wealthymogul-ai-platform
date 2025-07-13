@@ -153,7 +153,7 @@ export default function HomePage() {
               <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
             </div>
             
-            {/* NEW: Real Video Generation Button */}
+            {/* Real Video Generation Button */}
             <div style={{ marginBottom: '15px', padding: '15px', background: '#e8f5e8', borderRadius: '5px' }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#28a745' }}>🎬 Create Actual Video</h4>
               <button
@@ -202,7 +202,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* NEW: Video Generation Results */}
+        {/* Video Generation Results - UPDATED WITH FULL DEBUG */}
         {actualVideo && (
           <div style={{ 
             background: '#d4edda', 
@@ -221,34 +221,41 @@ export default function HomePage() {
             <div style={{ marginBottom: '10px' }}>
               <strong>Resolution:</strong> {actualVideo.resolution}
             </div>
-            <div style={{ marginBottom: '15px' }}>
+            <div style={{ marginBottom: '10px' }}>
               <strong>Provider:</strong> {actualVideo.provider}
             </div>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Public ID:</strong> {actualVideo.publicId || 'NOT_FOUND'}
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <strong>Retrieve URL:</strong> {actualVideo.retrieveUrl || 'NOT_FOUND'}
+            </div>
             
-            {actualVideo.videoData && (
-              <div style={{ 
-                background: '#fff', 
-                padding: '15px', 
-                borderRadius: '5px',
-                border: '1px solid #ddd'
+            {/* Show ALL response data for debugging */}
+            <div style={{ 
+              background: '#fff', 
+              padding: '15px', 
+              borderRadius: '5px',
+              border: '1px solid #ddd',
+              marginTop: '15px'
+            }}>
+              <h4>Complete Response Data:</h4>
+              <pre style={{ 
+                background: '#f8f9fa', 
+                padding: '10px', 
+                borderRadius: '3px',
+                fontSize: '12px',
+                overflow: 'auto',
+                maxHeight: '300px'
               }}>
-                <h4>Video Data:</h4>
-                <pre style={{ 
-                  background: '#f8f9fa', 
-                  padding: '10px', 
-                  borderRadius: '3px',
-                  fontSize: '12px',
-                  overflow: 'auto'
-                }}>
-                  {JSON.stringify(actualVideo.videoData, null, 2)}
-                </pre>
-              </div>
-            )}
+                {JSON.stringify(actualVideo, null, 2)}
+              </pre>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Revenue Dashboard - Rest stays the same */}
+      {/* Revenue Dashboard */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
