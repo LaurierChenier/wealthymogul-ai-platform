@@ -10,13 +10,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Generating video with Eden AI...');
+    console.log('Generating 30-second video with Eden AI...');
     
     // Create FormData for multipart/form-data
     const formData = new FormData();
     formData.append('providers', 'amazon');
     formData.append('text', script);
-    formData.append('duration', '6');
+    formData.append('duration', '30');  // 30-second videos for real education
     formData.append('fps', '24');
     formData.append('dimension', '1280x720');
     formData.append('seed', '12');
@@ -50,20 +50,20 @@ export default async function handler(req, res) {
       throw new Error(`Eden AI error: ${response.status} - ${data.detail || data.message || 'Unknown error'}`);
     }
 
-    // Debug: Show exactly what we received
+    // Return success with updated duration info
     const result = {
       success: true,
       title: title || 'Generated Video',
       script: script,
-      // Show ALL the data we received for debugging
       rawEdenResponse: data,
       publicId: data.public_id || 'NOT_FOUND',
       status: data.status || 'unknown',
-      message: 'Video generation request submitted',
+      message: '30-second video generation request submitted',
       generatedAt: new Date().toISOString(),
       provider: 'eden-ai',
-      duration: '6 seconds',
+      duration: '30 seconds',  // Updated duration
       resolution: '1280x720',
+      estimatedCost: '$2.50',  // Cost estimate for 30-second video
       retrieveUrl: data.public_id ? `https://api.edenai.run/v2/video/generation_async/${data.public_id}` : 'NO_PUBLIC_ID'
     };
 
