@@ -11,43 +11,37 @@ export default async function handler(req, res) {
 
   try {
     console.log('Generating video with Eden AI...');
-    console.log('API Key exists:', !!process.env.EDEN_AI_API_KEY);
-    console.log('API Key start:', process.env.EDEN_AI_API_KEY?.substring(0, 20));
     
-    // Call Eden AI Video Generation API
-    const response = await fetch('https://api.edenai.run/v2/video/generation', {
+    // Create FormData for multipart/form-data
+    const formData = new FormData();
+    formData.append('providers', 'amazon');
+    formData.append('text', script);
+    formData.append('duration', '6');
+    formData.append('fps', '24');
+    formData.append('dimension', '1280x720');
+    formData.append('seed', '12');
+
+    // Call Eden AI Video Generation API (ASYNC)
+    const response = await fetch('https://api.edenai.run/v2/video/generation_async', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.EDEN_AI_API_KEY}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        providers: ["stability"], 
-        text_prompt: script,
-        duration: 5,
-        resolution: "1280x720"
-      })
+      body: formData
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-
-    // Get raw response text first
     const responseText = await response.text();
-    console.log('Raw response:', responseText.substring(0, 500));
+    console.log('Raw response:', responseText);
 
-    // Try to parse as JSON
     let data;
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
       return res.status(500).json({
         success: false,
         error: 'Invalid JSON response from Eden AI',
         responseText: responseText.substring(0, 1000),
-        status: response.status,
-        hasApiKey: !!process.env.EDEN_AI_API_KEY
+        status: response.status
       });
     }
 
@@ -55,17 +49,17 @@ export default async function handler(req, res) {
       throw new Error(`Eden AI error: ${response.status} - ${data.detail || 'Unknown error'}`);
     }
 
-    console.log('Eden AI response:', data);
-
-    // Return success
+    // Return the public_id for video retrieval
     const result = {
       success: true,
       title: title || 'Generated Video',
       script: script,
-      videoData: data,
-      status: 'generated',
+      publicId: data.public_id,
+      status: 'processing',
+      message: 'Video generation started. Use public_id to check status.',
       generatedAt: new Date().toISOString(),
-      provider: 'eden-ai'
+      provider: 'eden-ai',
+      retrieveUrl: `https://api.edenai.run/v2/video/generation_async/${data.public_id}`
     };
 
     res.status(200).json(result);
