@@ -65,37 +65,27 @@ export default function HomePage() {
     }
   };
 
-  const handleVideoRetrieval = async () => {
-    if (!actualVideo?.publicId) return;
+  const handleRetrieveVideo = async () => {
+  if (!videoGeneration?.publicId) return;
+  
+  setIsRetrieving(true);
+  try {
+    const response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
+    const result = await response.json();
     
-    setIsRetrieving(true);
-    setRetrievedVideo(null);
-    
-    try {
-      const response = await fetch('/api/retrieve-video', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          publicId: actualVideo.publicId
-        }),
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setRetrievedVideo(result);
-      } else {
-        alert('Video retrieval failed: ' + result.error);
-      }
-    } catch (error) {
-      console.error('Video retrieval failed:', error);
-      alert('Video retrieval failed: ' + error.message);
-    } finally {
-      setIsRetrieving(false);
+    if (result.success) {
+      setVideoGeneration(prev => ({
+        ...prev,
+        ...result,
+        lastChecked: new Date().toLocaleTimeString()
+      }));
     }
-  };
+  } catch (error) {
+    console.error('Video retrieval failed:', error);
+  } finally {
+    setIsRetrieving(false);
+  }
+};
 
   return (
     <div style={{ 
