@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function HomePage() {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -77,33 +82,33 @@ export default function HomePage() {
               borderRadius: '5px',
               fontSize: '16px'
             }}
-            disabled={isGenerating}
           />
           <button
             onClick={handleGenerate}
-            disabled={isGenerating || !topic.trim()}
             style={{
               padding: '12px 24px',
-              background: isGenerating ? '#ccc' : '#667eea',
+              background: '#667eea',
               color: 'white',
               border: 'none',
               borderRadius: '5px',
               fontSize: '16px',
-              cursor: isGenerating ? 'not-allowed' : 'pointer'
+              cursor: 'pointer'
             }}
+            suppressHydrationWarning={true}
           >
-            {isGenerating ? 'Generating...' : 'Generate Video'}
+            {mounted && isGenerating ? 'Generating...' : 'Generate Video'}
           </button>
         </div>
 
-        {generatedVideo && (
+        {mounted && generatedVideo && (
           <div style={{ 
             background: '#f8f9fa', 
             border: '1px solid #e9ecef', 
             borderRadius: '5px', 
             padding: '20px',
             marginTop: '20px'
-          }}>
+          }}
+          suppressHydrationWarning={true}>
             <h3 style={{ color: '#333', marginBottom: '15px' }}>Generated Content:</h3>
             <div style={{ marginBottom: '10px' }}>
               <strong>Title:</strong> {generatedVideo.title}
