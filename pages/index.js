@@ -1,14 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function HomePage() {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [actualVideo, setActualVideo] = useState(null);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -29,6 +26,39 @@ export default function HomePage() {
       console.error('Generation failed:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleVideoGeneration = async () => {
+    if (!generatedVideo) return;
+    
+    setIsGeneratingVideo(true);
+    setActualVideo(null);
+    
+    try {
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          script: generatedVideo.scriptPreview,
+          title: generatedVideo.title 
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setActualVideo(result);
+      } else {
+        alert('Video generation failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Video generation failed:', error);
+      alert('Video generation failed: ' + error.message);
+    } finally {
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -82,33 +112,33 @@ export default function HomePage() {
               borderRadius: '5px',
               fontSize: '16px'
             }}
+            disabled={isGenerating}
           />
           <button
             onClick={handleGenerate}
+            disabled={isGenerating || !topic.trim()}
             style={{
               padding: '12px 24px',
-              background: '#667eea',
+              background: isGenerating ? '#ccc' : '#667eea',
               color: 'white',
               border: 'none',
               borderRadius: '5px',
               fontSize: '16px',
-              cursor: 'pointer'
+              cursor: isGenerating ? 'not-allowed' : 'pointer'
             }}
-            suppressHydrationWarning={true}
           >
-            {mounted && isGenerating ? 'Generating...' : 'Generate Video'}
+            {isGenerating ? 'Generating...' : 'Generate Script'}
           </button>
         </div>
 
-        {mounted && generatedVideo && (
+        {generatedVideo && (
           <div style={{ 
             background: '#f8f9fa', 
             border: '1px solid #e9ecef', 
             borderRadius: '5px', 
             padding: '20px',
             marginTop: '20px'
-          }}
-          suppressHydrationWarning={true}>
+          }}>
             <h3 style={{ color: '#333', marginBottom: '15px' }}>Generated Content:</h3>
             <div style={{ marginBottom: '10px' }}>
               <strong>Title:</strong> {generatedVideo.title}
@@ -122,6 +152,31 @@ export default function HomePage() {
             <div style={{ marginBottom: '15px' }}>
               <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
             </div>
+            
+            {/* NEW: Real Video Generation Button */}
+            <div style={{ marginBottom: '15px', padding: '15px', background: '#e8f5e8', borderRadius: '5px' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#28a745' }}>🎬 Create Actual Video</h4>
+              <button
+                onClick={handleVideoGeneration}
+                disabled={isGeneratingVideo}
+                style={{
+                  padding: '12px 24px',
+                  background: isGeneratingVideo ? '#ccc' : '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '16px',
+                  cursor: isGeneratingVideo ? 'not-allowed' : 'pointer',
+                  marginRight: '10px'
+                }}
+              >
+                {isGeneratingVideo ? 'Creating Video...' : '🎬 Generate Actual Video'}
+              </button>
+              <small style={{ color: '#666' }}>
+                This will create a real video using AI (Eden AI)
+              </small>
+            </div>
+
             <div style={{ display: 'flex', gap: '10px' }}>
               <button style={{
                 padding: '8px 16px',
@@ -146,9 +201,54 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+        {/* NEW: Video Generation Results */}
+        {actualVideo && (
+          <div style={{ 
+            background: '#d4edda', 
+            border: '2px solid #28a745', 
+            borderRadius: '5px', 
+            padding: '20px',
+            marginTop: '20px'
+          }}>
+            <h3 style={{ color: '#28a745', marginBottom: '15px' }}>🎉 Video Generated Successfully!</h3>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Video Title:</strong> {actualVideo.title}
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Duration:</strong> {actualVideo.duration}
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Resolution:</strong> {actualVideo.resolution}
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <strong>Provider:</strong> {actualVideo.provider}
+            </div>
+            
+            {actualVideo.videoData && (
+              <div style={{ 
+                background: '#fff', 
+                padding: '15px', 
+                borderRadius: '5px',
+                border: '1px solid #ddd'
+              }}>
+                <h4>Video Data:</h4>
+                <pre style={{ 
+                  background: '#f8f9fa', 
+                  padding: '10px', 
+                  borderRadius: '3px',
+                  fontSize: '12px',
+                  overflow: 'auto'
+                }}>
+                  {JSON.stringify(actualVideo.videoData, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Revenue Dashboard */}
+      {/* Revenue Dashboard - Rest stays the same */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
