@@ -6,6 +6,8 @@ export default function HomePage() {
   const [generatedVideo, setGeneratedVideo] = useState(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [actualVideo, setActualVideo] = useState(null);
+  const [retrievedVideo, setRetrievedVideo] = useState(null);
+  const [isRetrieving, setIsRetrieving] = useState(false);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -34,6 +36,7 @@ export default function HomePage() {
     
     setIsGeneratingVideo(true);
     setActualVideo(null);
+    setRetrievedVideo(null);
     
     try {
       const response = await fetch('/api/generate-video', {
@@ -59,6 +62,38 @@ export default function HomePage() {
       alert('Video generation failed: ' + error.message);
     } finally {
       setIsGeneratingVideo(false);
+    }
+  };
+
+  const handleVideoRetrieval = async () => {
+    if (!actualVideo?.publicId) return;
+    
+    setIsRetrieving(true);
+    setRetrievedVideo(null);
+    
+    try {
+      const response = await fetch('/api/retrieve-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          publicId: actualVideo.publicId
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setRetrievedVideo(result);
+      } else {
+        alert('Video retrieval failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Video retrieval failed:', error);
+      alert('Video retrieval failed: ' + error.message);
+    } finally {
+      setIsRetrieving(false);
     }
   };
 
@@ -202,7 +237,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Video Generation Results - UPDATED WITH FULL DEBUG */}
+        {/* Video Generation Results - UPDATED WITH RETRIEVAL BUTTON */}
         {actualVideo && (
           <div style={{ 
             background: '#d4edda', 
@@ -227,9 +262,32 @@ export default function HomePage() {
             <div style={{ marginBottom: '10px' }}>
               <strong>Public ID:</strong> {actualVideo.publicId || 'NOT_FOUND'}
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Retrieve URL:</strong> {actualVideo.retrieveUrl || 'NOT_FOUND'}
-            </div>
+            
+            {/* NEW: Retrieve Video Button */}
+            {actualVideo.publicId && (
+              <div style={{ marginBottom: '15px', padding: '15px', background: '#fff3cd', borderRadius: '5px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>📥 Get Your Video</h4>
+                <button
+                  onClick={handleVideoRetrieval}
+                  disabled={isRetrieving}
+                  style={{
+                    padding: '12px 24px',
+                    background: isRetrieving ? '#ccc' : '#ffc107',
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '5px',
+                    fontSize: '16px',
+                    cursor: isRetrieving ? 'not-allowed' : 'pointer',
+                    marginRight: '10px'
+                  }}
+                >
+                  {isRetrieving ? 'Retrieving Video...' : '📥 Retrieve Actual Video'}
+                </button>
+                <small style={{ color: '#666' }}>
+                  Click to download your generated video file
+                </small>
+              </div>
+            )}
             
             {/* Show ALL response data for debugging */}
             <div style={{ 
@@ -249,6 +307,62 @@ export default function HomePage() {
                 maxHeight: '300px'
               }}>
                 {JSON.stringify(actualVideo, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Retrieved Video Section */}
+        {retrievedVideo && (
+          <div style={{ 
+            background: '#d1ecf1', 
+            border: '2px solid #0c5460', 
+            borderRadius: '5px', 
+            padding: '20px',
+            marginTop: '20px'
+          }}>
+            <h3 style={{ color: '#0c5460', marginBottom: '15px' }}>🎬 Video Retrieved Successfully!</h3>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Status:</strong> {retrievedVideo.status}
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <strong>Video URL:</strong> {retrievedVideo.videoUrl ? 
+                <a href={retrievedVideo.videoUrl} target="_blank" rel="noopener noreferrer" style={{color: '#007bff'}}>
+                  Download Video
+                </a> : 'Processing...'}
+            </div>
+            
+            {/* Show video player if URL is available */}
+            {retrievedVideo.videoUrl && (
+              <div style={{ marginBottom: '15px' }}>
+                <video 
+                  controls 
+                  style={{ width: '100%', maxWidth: '600px', height: 'auto' }}
+                  src={retrievedVideo.videoUrl}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
+            
+            {/* Show complete retrieval data */}
+            <div style={{ 
+              background: '#fff', 
+              padding: '15px', 
+              borderRadius: '5px',
+              border: '1px solid #ddd',
+              marginTop: '15px'
+            }}>
+              <h4>Complete Retrieval Data:</h4>
+              <pre style={{ 
+                background: '#f8f9fa', 
+                padding: '10px', 
+                borderRadius: '3px',
+                fontSize: '12px',
+                overflow: 'auto',
+                maxHeight: '300px'
+              }}>
+                {JSON.stringify(retrievedVideo, null, 2)}
               </pre>
             </div>
           </div>
