@@ -31,11 +31,12 @@ export default async function handler(req, res) {
     });
 
     const responseText = await response.text();
-    console.log('Raw response:', responseText);
+    console.log('Eden AI Raw Response:', responseText);
 
     let data;
     try {
       data = JSON.parse(responseText);
+      console.log('Eden AI Parsed Data:', JSON.stringify(data, null, 2));
     } catch (parseError) {
       return res.status(500).json({
         success: false,
@@ -46,22 +47,27 @@ export default async function handler(req, res) {
     }
 
     if (!response.ok) {
-      throw new Error(`Eden AI error: ${response.status} - ${data.detail || 'Unknown error'}`);
+      throw new Error(`Eden AI error: ${response.status} - ${data.detail || data.message || 'Unknown error'}`);
     }
 
-    // Return the public_id for video retrieval
+    // Debug: Show exactly what we received
     const result = {
       success: true,
       title: title || 'Generated Video',
       script: script,
-      publicId: data.public_id,
-      status: 'processing',
-      message: 'Video generation started. Use public_id to check status.',
+      // Show ALL the data we received for debugging
+      rawEdenResponse: data,
+      publicId: data.public_id || 'NOT_FOUND',
+      status: data.status || 'unknown',
+      message: 'Video generation request submitted',
       generatedAt: new Date().toISOString(),
       provider: 'eden-ai',
-      retrieveUrl: `https://api.edenai.run/v2/video/generation_async/${data.public_id}`
+      duration: '6 seconds',
+      resolution: '1280x720',
+      retrieveUrl: data.public_id ? `https://api.edenai.run/v2/video/generation_async/${data.public_id}` : 'NO_PUBLIC_ID'
     };
 
+    console.log('Sending result:', JSON.stringify(result, null, 2));
     res.status(200).json(result);
 
   } catch (error) {
