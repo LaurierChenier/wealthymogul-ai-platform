@@ -1,15 +1,24 @@
 export default async function handler(req, res) {
+  console.log('API route called with method:', req.method);
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { topic } = req.body;
+  console.log('Topic received:', topic);
 
   if (!topic) {
     return res.status(400).json({ error: 'Topic is required' });
   }
 
+  // Check if API key exists
+  console.log('OpenAI API key exists:', !!process.env.OPENAI_API_KEY);
+  console.log('API key starts with:', process.env.OPENAI_API_KEY?.substring(0, 7));
+
   try {
+    console.log('Making OpenAI API call...');
+    
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -34,9 +43,13 @@ export default async function handler(req, res) {
       })
     });
 
+    console.log('OpenAI response status:', response.status);
+    
     const data = await response.json();
+    console.log('OpenAI response data:', data);
     
     if (!response.ok) {
+      console.error('OpenAI API error:', data.error);
       throw new Error(`OpenAI API error: ${data.error?.message || 'Unknown error'}`);
     }
 
@@ -44,7 +57,11 @@ export default async function handler(req, res) {
     let aiContent;
     try {
       aiContent = JSON.parse(data.choices[0].message.content);
+      console.log('Parsed AI content:', aiContent);
     } catch (parseError) {
+      console.log('JSON parse failed, using fallback. Parse error:', parseError);
+      console.log('Raw AI response:', data.choices[0].message.content);
+      
       // Fallback if AI doesn't return valid JSON
       aiContent = {
         title: `${topic}: Advanced Wealth Building Strategies`,
@@ -69,10 +86,11 @@ export default async function handler(req, res) {
       source: 'openai-gpt4o'
     };
 
+    console.log('Final result:', result);
     res.status(200).json(result);
 
   } catch (error) {
-    console.error('OpenAI generation error:', error);
+    console.error('Full error details:', error);
     res.status(500).json({ 
       error: 'Failed to generate content', 
       details: error.message 
