@@ -4,15 +4,14 @@ export default function HomePage() {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-  const [actualVideo, setActualVideo] = useState(null);
-  const [retrievedVideo, setRetrievedVideo] = useState(null);
+  const [videoGeneration, setVideoGeneration] = useState(null);
   const [isRetrieving, setIsRetrieving] = useState(false);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
     
     setIsGenerating(true);
+    setVideoGeneration(null);
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -31,13 +30,10 @@ export default function HomePage() {
     }
   };
 
-  const handleVideoGeneration = async () => {
+  const handleGenerateVideo = async () => {
     if (!generatedVideo) return;
     
-    setIsGeneratingVideo(true);
-    setActualVideo(null);
-    setRetrievedVideo(null);
-    
+    setIsRetrieving(true);
     try {
       const response = await fetch('/api/generate-video', {
         method: 'POST',
@@ -45,47 +41,48 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          script: generatedVideo.scriptPreview,
-          title: generatedVideo.title 
+          title: generatedVideo.title,
+          script: generatedVideo.scriptPreview 
         }),
       });
       
       const result = await response.json();
-      
       if (result.success) {
-        setActualVideo(result);
+        setVideoGeneration(result);
       } else {
-        alert('Video generation failed: ' + result.error);
+        console.error('Video generation failed:', result.error);
       }
     } catch (error) {
       console.error('Video generation failed:', error);
-      alert('Video generation failed: ' + error.message);
     } finally {
-      setIsGeneratingVideo(false);
+      setIsRetrieving(false);
     }
   };
 
   const handleRetrieveVideo = async () => {
-  if (!videoGeneration?.publicId) return;
-  
-  setIsRetrieving(true);
-  try {
-    const response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
-    const result = await response.json();
+    if (!videoGeneration?.publicId) return;
     
-    if (result.success) {
-      setVideoGeneration(prev => ({
-        ...prev,
-        ...result,
-        lastChecked: new Date().toLocaleTimeString()
-      }));
+    setIsRetrieving(true);
+    try {
+      // FIXED: Using GET request (no method specified = GET by default)
+      const response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setVideoGeneration(prev => ({
+          ...prev,
+          ...result,
+          lastChecked: new Date().toLocaleTimeString()
+        }));
+      } else {
+        console.error('Video retrieval failed:', result.error || result.message);
+      }
+    } catch (error) {
+      console.error('Video retrieval failed:', error);
+    } finally {
+      setIsRetrieving(false);
     }
-  } catch (error) {
-    console.error('Video retrieval failed:', error);
-  } finally {
-    setIsRetrieving(false);
-  }
-};
+  };
 
   return (
     <div style={{ 
@@ -152,7 +149,7 @@ export default function HomePage() {
               cursor: isGenerating ? 'not-allowed' : 'pointer'
             }}
           >
-            {isGenerating ? 'Generating...' : 'Generate Script'}
+            {isGenerating ? 'Generating...' : 'Generate Video'}
           </button>
         </div>
 
@@ -177,32 +174,20 @@ export default function HomePage() {
             <div style={{ marginBottom: '15px' }}>
               <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
             </div>
-            
-            {/* Real Video Generation Button */}
-            <div style={{ marginBottom: '15px', padding: '15px', background: '#e8f5e8', borderRadius: '5px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#28a745' }}>🎬 Create Actual Video</h4>
-              <button
-                onClick={handleVideoGeneration}
-                disabled={isGeneratingVideo}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={handleGenerateVideo}
+                disabled={isRetrieving}
                 style={{
-                  padding: '12px 24px',
-                  background: isGeneratingVideo ? '#ccc' : '#28a745',
+                  padding: '8px 16px',
+                  background: isRetrieving ? '#ccc' : '#28a745',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '5px',
-                  fontSize: '16px',
-                  cursor: isGeneratingVideo ? 'not-allowed' : 'pointer',
-                  marginRight: '10px'
-                }}
-              >
-                {isGeneratingVideo ? 'Creating Video...' : '🎬 Generate Actual Video'}
+                  borderRadius: '3px',
+                  cursor: isRetrieving ? 'not-allowed' : 'pointer'
+                }}>
+                {isRetrieving ? 'Processing...' : 'Generate AI Video'}
               </button>
-              <small style={{ color: '#666' }}>
-                This will create a 30-second educational video using AI (Eden AI) - Perfect for real estate tutorials!
-              </small>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
               <button style={{
                 padding: '8px 16px',
                 background: '#dc3545',
@@ -227,141 +212,80 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Video Generation Results - WITH RETRIEVAL BUTTON */}
-        {actualVideo && (
+        {videoGeneration && (
           <div style={{ 
-            background: '#d4edda', 
-            border: '2px solid #28a745', 
+            background: '#f0f8ff', 
+            border: '1px solid #0066cc', 
             borderRadius: '5px', 
             padding: '20px',
             marginTop: '20px'
           }}>
-            <h3 style={{ color: '#28a745', marginBottom: '15px' }}>🎉 Video Generated Successfully!</h3>
+            <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>AI Video Generation Status:</h3>
+            
             <div style={{ marginBottom: '10px' }}>
-              <strong>Video Title:</strong> {actualVideo.title}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Duration:</strong> {actualVideo.duration}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Resolution:</strong> {actualVideo.resolution}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Provider:</strong> {actualVideo.provider}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Public ID:</strong> {actualVideo.publicId || 'NOT_FOUND'}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Estimated Cost:</strong> {actualVideo.estimatedCost || '$2.50'}
+              <strong>Status:</strong> 
+              <span style={{ 
+                color: videoGeneration.status === 'completed' ? '#28a745' : 
+                      videoGeneration.status === 'processing' ? '#ffc107' : '#dc3545',
+                marginLeft: '8px',
+                fontWeight: 'bold'
+              }}>
+                {videoGeneration.status?.toUpperCase() || 'SUBMITTED'}
+              </span>
             </div>
             
-            {/* Retrieve Video Button */}
-            {actualVideo.publicId && (
-              <div style={{ marginBottom: '15px', padding: '15px', background: '#fff3cd', borderRadius: '5px' }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>📥 Get Your 30-Second Video</h4>
-                <button
-                  onClick={handleVideoRetrieval}
-                  disabled={isRetrieving}
-                  style={{
-                    padding: '12px 24px',
-                    background: isRetrieving ? '#ccc' : '#ffc107',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '5px',
-                    fontSize: '16px',
-                    cursor: isRetrieving ? 'not-allowed' : 'pointer',
-                    marginRight: '10px'
-                  }}
-                >
-                  {isRetrieving ? 'Retrieving Video...' : '📥 Retrieve Actual Video'}
-                </button>
-                <small style={{ color: '#666' }}>
-                  Click to download your 30-second educational video (processing takes 5-10 minutes)
-                </small>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Public ID:</strong> {videoGeneration.publicId}
+            </div>
+            
+            {videoGeneration.lastChecked && (
+              <div style={{ marginBottom: '10px' }}>
+                <strong>Last Checked:</strong> {videoGeneration.lastChecked}
               </div>
             )}
             
-            {/* Show ALL response data for debugging */}
-            <div style={{ 
-              background: '#fff', 
-              padding: '15px', 
-              borderRadius: '5px',
-              border: '1px solid #ddd',
-              marginTop: '15px'
-            }}>
-              <h4>Complete Response Data:</h4>
-              <pre style={{ 
-                background: '#f8f9fa', 
-                padding: '10px', 
-                borderRadius: '3px',
-                fontSize: '12px',
-                overflow: 'auto',
-                maxHeight: '300px'
-              }}>
-                {JSON.stringify(actualVideo, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
-
-        {/* Retrieved Video Section */}
-        {retrievedVideo && (
-          <div style={{ 
-            background: '#d1ecf1', 
-            border: '2px solid #0c5460', 
-            borderRadius: '5px', 
-            padding: '20px',
-            marginTop: '20px'
-          }}>
-            <h3 style={{ color: '#0c5460', marginBottom: '15px' }}>🎬 30-Second Video Retrieved Successfully!</h3>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Status:</strong> {retrievedVideo.status}
-            </div>
             <div style={{ marginBottom: '15px' }}>
-              <strong>Video URL:</strong> {retrievedVideo.videoUrl ? 
-                <a href={retrievedVideo.videoUrl} target="_blank" rel="noopener noreferrer" style={{color: '#007bff'}}>
-                  Download 30-Second Video
-                </a> : 'Processing... (this takes 5-10 minutes for 30-second videos)'}
+              <strong>Message:</strong> {videoGeneration.message}
             </div>
-            
-            {/* Show video player if URL is available */}
-            {retrievedVideo.videoUrl && (
-              <div style={{ marginBottom: '15px' }}>
-                <h4 style={{ color: '#0c5460' }}>Your AI-Generated Real Estate Video:</h4>
-                <video 
-                  controls 
-                  style={{ width: '100%', maxWidth: '600px', height: 'auto' }}
-                  src={retrievedVideo.videoUrl}
-                >
-                  Your browser does not support the video tag.
-                </video>
-                <p style={{ color: '#666', fontSize: '14px', marginTop: '10px' }}>
-                  Perfect for Instagram Reels, YouTube Shorts, and TikTok!
-                </p>
+
+            {(videoGeneration.status === 'processing' || videoGeneration.status === 'finished') && (
+              <button 
+                onClick={handleRetrieveVideo}
+                disabled={isRetrieving}
+                style={{
+                  padding: '8px 16px',
+                  background: isRetrieving ? '#ccc' : '#0066cc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: isRetrieving ? 'not-allowed' : 'pointer',
+                  marginRight: '10px'
+                }}>
+                {isRetrieving ? 'Checking...' : 'Check Video Status'}
+              </button>
+            )}
+
+            {videoGeneration.videoUrl && (
+              <div style={{ marginTop: '15px' }}>
+                <strong style={{ color: '#28a745' }}>✅ Video Ready!</strong>
+                <br />
+                <a 
+                  href={videoGeneration.videoUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    background: '#28a745',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '3px',
+                    marginTop: '10px'
+                  }}>
+                  Download Video
+                </a>
               </div>
             )}
-            
-            {/* Show complete retrieval data */}
-            <div style={{ 
-              background: '#fff', 
-              padding: '15px', 
-              borderRadius: '5px',
-              border: '1px solid #ddd',
-              marginTop: '15px'
-            }}>
-              <h4>Complete Retrieval Data:</h4>
-              <pre style={{ 
-                background: '#f8f9fa', 
-                padding: '10px', 
-                borderRadius: '3px',
-                fontSize: '12px',
-                overflow: 'auto',
-                maxHeight: '300px'
-              }}>
-                {JSON.stringify(retrievedVideo, null, 2)}
-              </pre>
-            </div>
           </div>
         )}
       </div>
@@ -437,7 +361,7 @@ export default function HomePage() {
           boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
         }}>
           <h3 style={{ color: '#333' }}>🤖 AI Content Generation</h3>
-          <p style={{ color: '#666' }}>Generate 30-second wealth-building video content perfect for social media</p>
+          <p style={{ color: '#666' }}>Generate wealth-building video scripts, titles, and descriptions instantly</p>
         </div>
         <div style={{ 
           background: 'rgba(255,255,255,0.95)', 
@@ -446,7 +370,7 @@ export default function HomePage() {
           boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
         }}>
           <h3 style={{ color: '#333' }}>📱 Multi-Platform Publishing</h3>
-          <p style={{ color: '#666' }}>Perfect for Instagram Reels, YouTube Shorts, and TikTok</p>
+          <p style={{ color: '#666' }}>Automatically distribute content to YouTube and Instagram</p>
         </div>
         <div style={{ 
           background: 'rgba(255,255,255,0.95)', 
