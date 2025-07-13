@@ -39,20 +39,16 @@ export default async function handler(req, res) {
       
       let videoUrl = null;
       
-      // Direct extraction from the known structure
-      if (data.results && data.results['amazon/amazon.nova-reel-v1:0']) {
-        const amazonResult = data.results['amazon/amazon.nova-reel-v1:0'];
+      // FIXED: Use 'amazon' key instead of 'amazon/amazon.nova-reel-v1:0'
+      if (data.results && data.results.amazon) {
+        const amazonResult = data.results.amazon;
         console.log('Amazon result:', JSON.stringify(amazonResult, null, 2));
         
-        // Check all possible URL fields
+        // Check the correct field name
         videoUrl = amazonResult.video_resource_url || 
                   amazonResult.resource_url || 
                   amazonResult.video_url ||
-                  amazonResult.url ||
-                  amazonResult.download_url ||
-                  amazonResult.output_url ||
-                  amazonResult.media_url ||
-                  amazonResult.file_url;
+                  amazonResult.url;
         
         console.log('Found video URL:', videoUrl);
       }
@@ -65,9 +61,9 @@ export default async function handler(req, res) {
         videoData: data,
         debugInfo: {
           hasResults: !!data.results,
-          hasAmazonResults: !!(data.results && data.results['amazon/amazon.nova-reel-v1:0']),
+          hasAmazonResults: !!(data.results && data.results.amazon),
           videoUrlFound: !!videoUrl,
-          amazonResultKeys: data.results && data.results['amazon/amazon.nova-reel-v1:0'] ? Object.keys(data.results['amazon/amazon.nova-reel-v1:0']) : []
+          amazonResultKeys: data.results && data.results.amazon ? Object.keys(data.results.amazon) : []
         }
       });
     }
