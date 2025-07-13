@@ -1,6 +1,14 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
   "env": {
-    "OPENAI_API_KEY": "@openai_api_key"
+    "OPENAI_API_KEY": "@openai_api_key",
+    "EDEN_AI_API_KEY": "@eden_ai_api_key",
+    "CACHE_BUST": "v2025-07-13"
   }
 }
