@@ -89,17 +89,20 @@ export default function HomePage() {
   };
 
   const handleRetrieveVideo = async () => {
-    if (!videoGeneration?.publicId) return;
+    if (!videoGeneration?.publicId && !videoGeneration?.taskId) return;
     
     setIsRetrieving(true);
     try {
-      // Check if this is a Runway ML video (use different endpoint)
-      const isRunway = videoGeneration.provider === 'runway-ml';
-      const endpoint = isRunway 
-        ? `/api/runway-status?taskId=${videoGeneration.taskId || videoGeneration.publicId}`
-        : `/api/retrieve-video?publicId=${videoGeneration.publicId}`;
+      let response;
       
-      const response = await fetch(endpoint);
+      if (videoGeneration.provider === 'runway') {
+        // Use Runway status endpoint
+        response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
+      } else {
+        // Use Eden AI status endpoint
+        response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
@@ -108,8 +111,6 @@ export default function HomePage() {
           ...result,
           lastChecked: new Date().toLocaleTimeString()
         }));
-      } else {
-        console.error('Video retrieval failed:', result.error || result.message);
       }
     } catch (error) {
       console.error('Video retrieval failed:', error);
@@ -209,10 +210,9 @@ export default function HomePage() {
               <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
             </div>
             
-            {/* Video Generation Options */}
-            <div style={{ marginBottom: '20px', padding: '15px', background: '#e8f4f8', borderRadius: '5px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#0066cc' }}>Choose Video Type:</h4>
-              <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ color: '#0066cc', marginBottom: '10px' }}>Choose Video Type:</h4>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button 
                   onClick={handleGenerateVideo}
                   disabled={isRetrieving}
@@ -221,38 +221,37 @@ export default function HomePage() {
                     background: isRetrieving ? '#ccc' : '#28a745',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '5px',
+                    borderRadius: '8px',
                     cursor: isRetrieving ? 'not-allowed' : 'pointer',
-                    flex: '1',
-                    minWidth: '200px'
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    minWidth: '160px'
                   }}>
-                  {isRetrieving ? 'Processing...' : '🔵 Quick Video (6 sec)'}
-                  <div style={{ fontSize: '12px', marginTop: '5px' }}>
-                    Eden AI • $0.50 • 2 mins
-                  </div>
+                  🟢 Quick Video (6 sec)
+                  <br />
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Eden AI • $0.50 • 2 mins</small>
                 </button>
-                
                 <button 
                   onClick={handleGenerateRunwayVideo}
                   disabled={isRetrieving}
                   style={{
                     padding: '12px 20px',
-                    background: isRetrieving ? '#ccc' : '#6f42c1',
+                    background: isRetrieving ? '#ccc' : '#8a2be2',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '5px',
+                    borderRadius: '8px',
                     cursor: isRetrieving ? 'not-allowed' : 'pointer',
-                    flex: '1',
-                    minWidth: '200px'
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    minWidth: '160px'
                   }}>
-                  {isRetrieving ? 'Processing...' : '🟢 Professional Video (30 sec)'}
-                  <div style={{ fontSize: '12px', marginTop: '5px' }}>
-                    Runway ML • $7-15 • 3-5 mins
-                  </div>
+                  🟣 Professional Video (30 sec)
+                  <br />
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Runway ML • $7-15 • 3-5 mins</small>
                 </button>
               </div>
             </div>
-
+            
             <div style={{ display: 'flex', gap: '10px' }}>
               <button style={{
                 padding: '8px 16px',
@@ -286,26 +285,36 @@ export default function HomePage() {
             padding: '20px',
             marginTop: '20px'
           }}>
-            <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>AI Video Generation Status:</h3>
+            <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>
+              {videoGeneration.provider === 'runway' ? 'Professional Video Generation Status:' : 'AI Video Generation Status:'}
+            </h3>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Provider:</strong> 
+              <span style={{ marginLeft: '8px' }}>
+                {videoGeneration.provider === 'runway' ? 'Runway ML (Professional)' : 'Eden AI (Quick)'}
+              </span>
+            </div>
             
             <div style={{ marginBottom: '10px' }}>
               <strong>Status:</strong> 
               <span style={{ 
-                color: videoGeneration.status === 'completed' ? '#28a745' : 
-                      videoGeneration.status === 'processing' ? '#ffc107' : '#dc3545',
+                color: videoGeneration.status === 'completed' || videoGeneration.status === 'succeeded' ? '#28a745' : 
+                      videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' ? '#ffc107' : '#dc3545',
                 marginLeft: '8px',
                 fontWeight: 'bold'
               }}>
                 {videoGeneration.status?.toUpperCase() || 'SUBMITTED'}
               </span>
+              {videoGeneration.progress && (
+                <span style={{ marginLeft: '8px', color: '#666' }}>
+                  ({videoGeneration.progress}%)
+                </span>
+              )}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
-              <strong>Public ID:</strong> {videoGeneration.publicId || videoGeneration.taskId}
-            </div>
-            
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Provider:</strong> {videoGeneration.provider || 'eden-ai'}
+              <strong>ID:</strong> {videoGeneration.publicId || videoGeneration.taskId}
             </div>
             
             {videoGeneration.lastChecked && (
@@ -318,7 +327,7 @@ export default function HomePage() {
               <strong>Message:</strong> {videoGeneration.message}
             </div>
 
-            {(videoGeneration.status === 'processing' || videoGeneration.status === 'finished' || videoGeneration.status === 'submitted') && (
+            {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running') && (
               <button 
                 onClick={handleRetrieveVideo}
                 disabled={isRetrieving}
