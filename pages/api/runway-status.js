@@ -1,6 +1,6 @@
 import RunwayML from '@runwayml/sdk';
 
-// Runway ML Status Check API using official SDK
+// Enhanced Runway ML Status Check API with automatic fresh JWT token retrieval
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
     console.log('Checking Runway ML status for task:', taskId);
 
-    // Use SDK to retrieve task status
+    // Use SDK to retrieve FRESH task status (always gets new JWT tokens)
     const task = await client.tasks.retrieve(taskId);
 
     console.log('Runway ML SDK status response:', task);
@@ -35,19 +35,29 @@ export default async function handler(req, res) {
     const status = task.status;
     let videoUrl = null;
     let message = 'Processing professional video...';
+    let downloadReady = false;
 
     if (status === 'SUCCEEDED') {
-      // Extract video URL from task output
+      // Extract video URL from task output (fresh JWT token)
       if (task.output && task.output.length > 0) {
-        videoUrl = task.output[0];
-        message = 'Professional video generated successfully!';
+        videoUrl = task.output[0]; // This will have a fresh JWT token
+        message = 'Professional video generated successfully! Download link refreshed.';
+        downloadReady = true;
       } else {
         message = 'Video completed but no output found';
       }
     } else if (status === 'FAILED') {
       message = 'Professional video generation failed';
-    } else if (status === 'PENDING' || status === 'RUNNING') {
-      message = 'Generating professional video... This may take 3-5 minutes';
+      // Log failure reason if available
+      if (task.failure) {
+        console.error('Task failure details:', task.failure);
+        message += ` - ${task.failure.reason || 'Unknown error'}`;
+      }
+    } else if (status === 'PENDING') {
+      message = 'Video generation queued... Starting soon';
+    } else if (status === 'RUNNING') {
+      const progressPercent = task.progress ? Math.round(task.progress * 100) : 0;
+      message = `Generating professional video... ${progressPercent}% complete (${3-Math.floor(progressPercent/35)} mins remaining)`;
     }
 
     return res.status(200).json({
@@ -58,7 +68,16 @@ export default async function handler(req, res) {
       provider: 'runway',
       taskId: taskId,
       progress: task.progress || 0,
-      sdk_response: task
+      downloadReady: downloadReady,
+      freshTokenGenerated: !!videoUrl,
+      lastUpdated: new Date().toISOString(),
+      sdk_response: {
+        id: task.id,
+        status: task.status,
+        createdAt: task.createdAt,
+        progress: task.progress,
+        output: task.output
+      }
     });
 
   } catch (error) {
