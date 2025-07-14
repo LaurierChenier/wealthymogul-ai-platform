@@ -31,13 +31,13 @@ export default async function handler(req, res) {
       ratio: "1280:768"
     };
 
-    // Use the correct image_to_video endpoint with text-only generation
+    // Use the latest API version (May 16, 2025)
     const response = await fetch('https://api.runwayml.com/v1/image_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06'
+        'X-Runway-Version': '2025-05-16'
       },
       body: JSON.stringify(requestBody)
     });
