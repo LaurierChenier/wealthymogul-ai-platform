@@ -1,4 +1,4 @@
-        {videoGeneration && (
+{videoGeneration && (
           <div style={{ 
             background: '#f0f8ff', 
             border: '1px solid #0066cc', 
