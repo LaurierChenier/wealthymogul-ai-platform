@@ -1,6 +1,6 @@
 import RunwayML from '@runwayml/sdk';
 
-// Runway ML Video Generation API using official SDK
+// Runway ML Video Generation API with automatic extension to 34 seconds
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Runway ML API key not configured' });
     }
 
-    // Initialize Runway ML SDK with your existing API key
+    // Initialize Runway ML SDK
     const client = new RunwayML({
       apiKey: apiKey
     });
@@ -27,40 +27,44 @@ export default async function handler(req, res) {
     // Prepare the prompt for video generation
     const prompt = `${title}: ${script}`.substring(0, 300);
 
-    console.log('Starting Runway ML video generation with SDK:', prompt);
-    console.log('API Key configured:', apiKey ? 'Yes' : 'No');
+    console.log('Starting Runway ML 34-second video generation with extensions:', prompt);
 
-    // Use SDK for 30-second professional video generation
-    const task = await client.imageToVideo.create({
+    // Step 1: Generate base 10-second video
+    const baseTask = await client.imageToVideo.create({
       model: 'gen3a_turbo',
       promptImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop',
       promptText: prompt,
-      duration: 30,
+      duration: 10,
       ratio: '1280:768'
     });
 
-    console.log('Runway ML SDK response:', task);
+    console.log('Base 10-second video task created:', baseTask);
 
-    // Return the task ID for status checking
+    // Return the initial task info - extensions will be handled by status endpoint
     return res.status(200).json({
       success: true,
-      taskId: task.id,
+      taskId: baseTask.id,
       status: 'PENDING',
-      message: 'Professional 30-second video generation started successfully using SDK',
+      message: 'Professional 34-second video generation started (10s base + 3 extensions)',
       provider: 'runway',
-      duration: 30
+      duration: 34,
+      stage: 'base_generation',
+      totalStages: 4,
+      currentStage: 1,
+      stageDescription: 'Generating base 10-second video...',
+      originalPrompt: prompt,
+      originalTitle: title,
+      originalScript: script
     });
 
   } catch (error) {
     console.error('Runway ML SDK error:', error);
     
-    // Enhanced error handling for SDK
     return res.status(500).json({ 
       error: 'Failed to generate professional video',
       details: error.message,
       sdk_error: true,
-      api_key_configured: !!process.env.RUNWAYML_API_SECRET,
-      api_key_length: process.env.RUNWAYML_API_SECRET ? process.env.RUNWAYML_API_SECRET.length : 0
+      api_key_configured: !!process.env.RUNWAYML_API_SECRET
     });
   }
 }
