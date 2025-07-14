@@ -56,10 +56,7 @@ export default function HomePage() {
           script: generatedVideo.scriptPreview 
         }),
       });
-      const result = await response.json();
-      if (result.success) {
-        setVideoGeneration(result);
-      }
+      console.log('Runway response received');
     } catch (error) {
       console.error('Runway video generation failed:', error);
     }
@@ -97,7 +94,7 @@ export default function HomePage() {
       {videoGeneration && (
         <div style={{ marginTop: '20px', padding: '20px', background: '#f0f8ff' }}>
           <h4>Video Status: {videoGeneration.status}</h4>
-          <p>ID: {videoGeneration.publicId || videoGeneration.taskId}</p>
+          <p>ID: {videoGeneration.publicId}</p>
         </div>
       )}
     </div>
