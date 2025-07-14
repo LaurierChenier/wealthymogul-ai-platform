@@ -10,8 +10,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Truncate script to 512 characters max for Amazon Nova Reel
-    const truncatedScript = script.length > 512 ? script.substring(0, 512) + '...' : script;
+    // Proper truncation: account for "..." in character count
+    let truncatedScript;
+    if (script.length > 512) {
+      truncatedScript = script.substring(0, 509) + '...'; // 509 + 3 = 512 exactly
+    } else {
+      truncatedScript = script;
+    }
     
     console.log('Original script length:', script.length);
     console.log('Truncated script length:', truncatedScript.length);
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         providers: ['amazon/amazon.nova-reel-v1:0'],
-        text: truncatedScript, // Use truncated script
+        text: truncatedScript,
         duration: 6,
         resolution: '1280x720',
         response_as_dict: true,
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       title: title,
-      script: truncatedScript, // Return truncated version
+      script: truncatedScript,
       rawEdenResponse: data,
       publicId: data.public_id,
       status: data.status || 'processing',
