@@ -46,7 +46,23 @@ export default function HomePage() {
   };
 
   const handleGenerateRunwayVideo = async () => {
-    console.log('Runway function called');
+    if (!generatedVideo) return;
+    try {
+      const response = await fetch('/api/generate-video-runway', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title: generatedVideo.title,
+          script: generatedVideo.scriptPreview 
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setVideoGeneration(result);
+      }
+    } catch (error) {
+      console.error('Runway video generation failed:', error);
+    }
   };
 
   return (
@@ -81,7 +97,7 @@ export default function HomePage() {
       {videoGeneration && (
         <div style={{ marginTop: '20px', padding: '20px', background: '#f0f8ff' }}>
           <h4>Video Status: {videoGeneration.status}</h4>
-          <p>ID: {videoGeneration.publicId}</p>
+          <p>ID: {videoGeneration.publicId || videoGeneration.taskId}</p>
         </div>
       )}
     </div>
