@@ -1,7 +1,6 @@
 {
-  "name": "wealthymogul-ai-platform",
+  "name": "wealthymogul-platform",
   "version": "1.0.0",
-  "description": "AI-powered real estate education video generation platform",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,29 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^14.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "@runwayml/sdk": "^1.0.0",
+    "next": "14.2.5",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
-    "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0",
-    "typescript": "^5.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": [
-    "ai",
-    "video-generation",
-    "real-estate",
-    "openai",
-    "runway-ml",
-    "wealth-building"
-  ],
-  "author": "WealthyMogul.com",
-  "license": "MIT"
+    "eslint": "^8",
+    "eslint-config-next": "14.2.5"
+  }
 }
