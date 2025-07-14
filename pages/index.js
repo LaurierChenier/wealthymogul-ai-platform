@@ -96,42 +96,8 @@ export default function HomePage() {
       let response;
       
       if (videoGeneration.provider === 'runway') {
-        // Check if we need to trigger an extension
-        if (videoGeneration.shouldExtend && videoGeneration.assetId && videoGeneration.nextStage) {
-          // Trigger extension first
-          const extensionResponse = await fetch('/api/runway-extend', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              assetId: videoGeneration.assetId,
-              stage: videoGeneration.nextStage,
-              originalPrompt: videoGeneration.originalPrompt,
-              originalTitle: videoGeneration.originalTitle
-            })
-          });
-          
-          const extensionResult = await extensionResponse.json();
-          if (extensionResult.success) {
-            // Update with new extension task
-            setVideoGeneration(prev => ({
-              ...prev,
-              taskId: extensionResult.taskId,
-              stage: extensionResult.stage,
-              currentStage: extensionResult.currentStage,
-              stageDescription: extensionResult.stageDescription,
-              shouldExtend: false,
-              lastChecked: new Date().toLocaleTimeString()
-            }));
-            return;
-          }
-        }
-        
-        // Use Runway status endpoint
         response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
       } else {
-        // Use Eden AI status endpoint
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -160,7 +126,6 @@ export default function HomePage() {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh'
     }}>
-      {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
         <h1 style={{ 
           color: '#fff', 
@@ -179,7 +144,6 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* AI Generator Section */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -277,34 +241,11 @@ export default function HomePage() {
                     fontWeight: 'bold',
                     minWidth: '160px'
                   }}>
-                  🟣 Professional Video (34 sec)
+                  🟣 Professional Video (10 sec)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Runway ML • $20-30 • 8-12 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Runway ML • $7-15 • 3-5 mins</small>
                 </button>
               </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button style={{
-                padding: '8px 16px',
-                background: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
-              }}>
-                Upload to YouTube
-              </button>
-              <button style={{
-                padding: '8px 16px',
-                background: '#e1306c',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
-              }}>
-                Post to Instagram
-              </button>
             </div>
           </div>
         )}
@@ -338,36 +279,11 @@ export default function HomePage() {
               }}>
                 {videoGeneration.status?.toUpperCase() || 'SUBMITTED'}
               </span>
-              {videoGeneration.progress > 0 && (
-                <span style={{ marginLeft: '8px', color: '#666' }}>
-                  ({Math.round(videoGeneration.progress * 100)}%)
-                </span>
-              )}
             </div>
-
-            {videoGeneration.provider === 'runway' && videoGeneration.currentStage && (
-              <div style={{ marginBottom: '10px' }}>
-                <strong>Progress:</strong> 
-                <span style={{ marginLeft: '8px', color: '#666' }}>
-                  Stage {videoGeneration.currentStage}/{videoGeneration.totalStages || 4}
-                </span>
-                {videoGeneration.stageDescription && (
-                  <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                    {videoGeneration.stageDescription}
-                  </div>
-                )}
-              </div>
-            )}
             
             <div style={{ marginBottom: '10px' }}>
               <strong>ID:</strong> {videoGeneration.publicId || videoGeneration.taskId}
             </div>
-            
-            {videoGeneration.lastChecked && (
-              <div style={{ marginBottom: '10px' }}>
-                <strong>Last Checked:</strong> {videoGeneration.lastChecked}
-              </div>
-            )}
             
             <div style={{ marginBottom: '15px' }}>
               <strong>Message:</strong> {videoGeneration.message}
@@ -378,39 +294,26 @@ export default function HomePage() {
               videoGeneration.status === 'running' ||
               videoGeneration.status === 'PENDING' ||
               videoGeneration.status === 'RUNNING') && (
-              <div style={{ marginBottom: '15px' }}>
-                <button 
-                  onClick={handleRetrieveVideo}
-                  disabled={isRetrieving}
-                  style={{
-                    padding: '10px 20px',
-                    background: isRetrieving ? '#ccc' : '#0066cc',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: isRetrieving ? 'not-allowed' : 'pointer',
-                    fontWeight: 'bold',
-                    marginRight: '10px'
-                  }}>
-                  {isRetrieving ? 'Checking...' : 'Check Video Status'}
-                </button>
-                <small style={{ color: '#666' }}>
-                  {videoGeneration.provider === 'runway' ? 
-                    'Professional videos take 8-12 minutes for full 34-second generation' : 
-                    'Quick videos take about 2 minutes'
-                  }
-                </small>
-              </div>
+              <button 
+                onClick={handleRetrieveVideo}
+                disabled={isRetrieving}
+                style={{
+                  padding: '10px 20px',
+                  background: isRetrieving ? '#ccc' : '#0066cc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: isRetrieving ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold',
+                  marginRight: '10px'
+                }}>
+                {isRetrieving ? 'Checking...' : 'Check Video Status'}
+              </button>
             )}
 
-            {videoGeneration.videoUrl && videoGeneration.downloadReady && (
+            {videoGeneration.videoUrl && (
               <div style={{ marginTop: '15px' }}>
                 <strong style={{ color: '#28a745' }}>✅ Video Ready!</strong>
-                {videoGeneration.freshTokenGenerated && (
-                  <span style={{ color: '#28a745', fontSize: '12px', marginLeft: '8px' }}>
-                    (Fresh download link)
-                  </span>
-                )}
                 <br />
                 <a 
                   href={videoGeneration.videoUrl} 
@@ -426,105 +329,12 @@ export default function HomePage() {
                     marginTop: '10px',
                     fontWeight: 'bold'
                   }}>
-                  📥 Download {videoGeneration.provider === 'runway' ? '34-Second' : '6-Second'} Video
+                  📥 Download Video
                 </a>
               </div>
             )}
           </div>
         )}
-      </div>
-
-      {/* Revenue Dashboard */}
-      <div style={{ 
-        background: 'rgba(255,255,255,0.95)', 
-        borderRadius: '10px', 
-        padding: '30px',
-        boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
-      }}>
-        <h2 style={{ color: '#333', marginBottom: '20px' }}>Triple Platform Revenue Dashboard</h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '20px' 
-        }}>
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px',
-            border: '2px solid #667eea'
-          }}>
-            <h3 style={{ color: '#667eea', margin: '0 0 10px 0' }}>WealthyMogul.com</h3>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>$0.00</div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>AdSense Revenue</div>
-          </div>
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px',
-            border: '2px solid #dc3545'
-          }}>
-            <h3 style={{ color: '#dc3545', margin: '0 0 10px 0' }}>YouTube</h3>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>$0.00</div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Ad Revenue + Sponsorships</div>
-          </div>
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px',
-            border: '2px solid #e1306c'
-          }}>
-            <h3 style={{ color: '#e1306c', margin: '0 0 10px 0' }}>Instagram</h3>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>$0.00</div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Reels + Brand Partnerships</div>
-          </div>
-        </div>
-        <div style={{ 
-          marginTop: '30px', 
-          padding: '20px', 
-          background: '#e8f5e8', 
-          borderRadius: '8px',
-          border: '2px solid #28a745'
-        }}>
-          <h3 style={{ color: '#28a745', margin: '0 0 10px 0' }}>Total Revenue</h3>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#28a745' }}>$0.00</div>
-          <div style={{ color: '#666' }}>Combined earnings from all platforms</div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div style={{ 
-        marginTop: '40px',
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '20px' 
-      }}>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>🤖 AI Content Generation</h3>
-          <p style={{ color: '#666' }}>Generate wealth-building video scripts, titles, and descriptions instantly</p>
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>📱 Multi-Platform Publishing</h3>
-          <p style={{ color: '#666' }}>Automatically distribute content to YouTube and Instagram</p>
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>💰 Revenue Optimization</h3>
-          <p style={{ color: '#666' }}>Triple revenue streams with AdSense, YouTube, and Instagram monetization</p>
-        </div>
       </div>
     </div>
   );
