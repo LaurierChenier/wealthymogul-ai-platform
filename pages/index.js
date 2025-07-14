@@ -327,7 +327,7 @@ export default function HomePage() {
               <strong>Message:</strong> {videoGeneration.message}
             </div>
 
-            {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running') && (
+           {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' || videoGeneration.status === 'PENDING' || videoGeneration.status === 'PROCESSING' || videoGeneration.status === 'RUNNING') && (
               <button 
                 onClick={handleRetrieveVideo}
                 disabled={isRetrieving}
