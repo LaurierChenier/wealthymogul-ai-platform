@@ -1,6 +1,6 @@
 import RunwayML from '@runwayml/sdk';
 
-// Enhanced Runway ML Status Check API with automatic fresh JWT token retrieval
+// Enhanced Runway ML Status Check API with automatic extension management
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -26,29 +26,46 @@ export default async function handler(req, res) {
 
     console.log('Checking Runway ML status for task:', taskId);
 
-    // Use SDK to retrieve FRESH task status (always gets new JWT tokens)
+    // Retrieve current task status
     const task = await client.tasks.retrieve(taskId);
-
     console.log('Runway ML SDK status response:', task);
 
-    // Extract status and video URL
     const status = task.status;
     let videoUrl = null;
     let message = 'Processing professional video...';
     let downloadReady = false;
+    let shouldExtend = false;
+    let nextStage = null;
+    let assetId = null;
 
     if (status === 'SUCCEEDED') {
-      // Extract video URL from task output (fresh JWT token)
+      // Extract video URL and asset ID
       if (task.output && task.output.length > 0) {
-        videoUrl = task.output[0]; // This will have a fresh JWT token
-        message = 'Professional video generated successfully! Download link refreshed.';
+        videoUrl = task.output[0];
         downloadReady = true;
+        
+        // Extract asset ID for potential extension
+        if (task.assetIds && task.assetIds.length > 0) {
+          assetId = task.assetIds[0];
+        }
+        
+        // Determine if we need to extend this video
+        // Check if this is a base video (stage 1) or extension that needs more stages
+        const currentStage = task.metadata?.currentStage || 1;
+        
+        if (currentStage < 4) {
+          shouldExtend = true;
+          nextStage = currentStage + 1;
+          message = `Stage ${currentStage}/4 completed! Preparing stage ${nextStage}...`;
+          downloadReady = false; // Don't show download until final video
+        } else {
+          message = 'Professional 34-second video generated successfully! Download link refreshed.';
+        }
       } else {
         message = 'Video completed but no output found';
       }
     } else if (status === 'FAILED') {
       message = 'Professional video generation failed';
-      // Log failure reason if available
       if (task.failure) {
         console.error('Task failure details:', task.failure);
         message += ` - ${task.failure.reason || 'Unknown error'}`;
@@ -57,7 +74,8 @@ export default async function handler(req, res) {
       message = 'Video generation queued... Starting soon';
     } else if (status === 'RUNNING') {
       const progressPercent = task.progress ? Math.round(task.progress * 100) : 0;
-      message = `Generating professional video... ${progressPercent}% complete (${3-Math.floor(progressPercent/35)} mins remaining)`;
+      const currentStage = task.metadata?.currentStage || 1;
+      message = `Stage ${currentStage}/4: Generating video... ${progressPercent}% complete`;
     }
 
     return res.status(200).json({
@@ -71,12 +89,18 @@ export default async function handler(req, res) {
       downloadReady: downloadReady,
       freshTokenGenerated: !!videoUrl,
       lastUpdated: new Date().toISOString(),
+      shouldExtend: shouldExtend,
+      nextStage: nextStage,
+      assetId: assetId,
+      currentStage: task.metadata?.currentStage || 1,
+      totalStages: 4,
       sdk_response: {
         id: task.id,
         status: task.status,
         createdAt: task.createdAt,
         progress: task.progress,
-        output: task.output
+        output: task.output,
+        assetIds: task.assetIds
       }
     });
 
