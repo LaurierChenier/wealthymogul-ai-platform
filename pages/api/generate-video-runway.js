@@ -26,18 +26,17 @@ export default async function handler(req, res) {
       model: "gen3a_turbo",
       promptText: prompt,
       seed: Math.floor(Math.random() * 4294967295),
-      watermark: false,
       duration: 10,
       ratio: "1280:768"
     };
 
-    // Use the latest API version (May 16, 2025)
+    // Use the actual latest supported API version (2024-11-06)
     const response = await fetch('https://api.runwayml.com/v1/image_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': '2025-05-16'
+        'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify(requestBody)
     });
