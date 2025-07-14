@@ -33,13 +33,14 @@ export default async function handler(req, res) {
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-    // Make request to Runway ML API using the correct Gen-3 Alpha endpoint
+    // Make request to Runway ML API using the correct Gen-3 Alpha endpoint with version header
     const response = await fetch('https://api.runwayml.com/v1/gen3/create', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify(requestBody)
     });
