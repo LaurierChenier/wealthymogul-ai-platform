@@ -1,3 +1,5 @@
+Test deployment - checking OpenAI API key
+export default async function handler(req, res) {
 export default async function handler(req, res) {
   try {
     const response = await fetch('https://api.openai.com/v1/models', {
