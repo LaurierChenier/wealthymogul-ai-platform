@@ -23,15 +23,16 @@ export default async function handler(req, res) {
     console.log('Starting Runway ML video generation with prompt:', prompt);
 
     const requestBody = {
-      text_prompt: prompt,
-      enhance_prompt: true,
-      seconds: 10,
-      seed: Math.floor(Math.random() * 999999999),
-      exploreMode: false
+      model: "gen3a_turbo",
+      promptText: prompt,
+      seed: Math.floor(Math.random() * 4294967295),
+      watermark: false,
+      duration: 10,
+      ratio: "1280:768"
     };
 
-    // Make request to Runway ML API with correct endpoint and version header
-    const response = await fetch('https://api.runwayml.com/gen3/create', {
+    // Use the correct image_to_video endpoint with text-only generation
+    const response = await fetch('https://api.runwayml.com/v1/image_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ 
         error: 'Failed to start video generation',
         details: `API returned ${response.status}: ${responseText}`,
-        endpoint: 'https://api.runwayml.com/gen3/create',
+        endpoint: 'https://api.runwayml.com/v1/image_to_video',
         requestBody: requestBody,
         api_key_configured: !!apiKey,
         api_key_length: apiKey ? apiKey.length : 0
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
     // Return the task ID for status checking
     return res.status(200).json({
       success: true,
-      taskId: result.taskId || result.id,
+      taskId: result.id,
       status: 'PENDING',
       message: 'Professional video generation started successfully',
       provider: 'runway'
