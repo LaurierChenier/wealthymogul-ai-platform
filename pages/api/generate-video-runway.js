@@ -33,9 +33,9 @@ export default async function handler(req, res) {
     // Use SDK for 30-second professional video generation
     const task = await client.imageToVideo.create({
       model: 'gen3a_turbo',
-      promptImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop', // Neutral placeholder
+      promptImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop',
       promptText: prompt,
-      duration: 30,  // Updated from 10 to 30 seconds for true professional videos
+      duration: 30,
       ratio: '1280:768'
     });
 
@@ -64,4 +64,3 @@ export default async function handler(req, res) {
     });
   }
 }
-# Updated Sun Jul 14 17:29:08 UTC 2025
