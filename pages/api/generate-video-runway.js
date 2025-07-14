@@ -21,7 +21,6 @@ export default async function handler(req, res) {
     const prompt = `${title}: ${script}`.substring(0, 300);
 
     console.log('Starting Runway ML video generation with prompt:', prompt);
-    console.log('API Key configured:', apiKey ? 'Yes' : 'No');
 
     const requestBody = {
       text_prompt: prompt,
@@ -31,48 +30,31 @@ export default async function handler(req, res) {
       exploreMode: false
     };
 
-    console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
-    // Make request to Runway ML API using the correct Gen-3 Alpha endpoint with version header
-    const response = await fetch('https://api.runwayml.com/v1/gen3/create', {
+    // Make request to Runway ML API using the correct endpoint (without /v1 prefix)
+    const response = await fetch('https://api.runwayml.com/gen3/create', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Runway-Version': '2024-11-06'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
 
-    console.log('Runway ML API response status:', response.status);
-
     const responseText = await response.text();
-    console.log('Runway ML API response body:', responseText);
 
     if (!response.ok) {
       console.error('Runway ML API error:', response.status, responseText);
       return res.status(response.status).json({ 
         error: 'Failed to start video generation',
         details: `API returned ${response.status}: ${responseText}`,
-        endpoint: 'https://api.runwayml.com/v1/gen3/create',
+        endpoint: 'https://api.runwayml.com/gen3/create',
         requestBody: requestBody,
         api_key_configured: !!apiKey,
         api_key_length: apiKey ? apiKey.length : 0
       });
     }
 
-    let result;
-    try {
-      result = JSON.parse(responseText);
-      console.log('Runway ML parsed response:', result);
-    } catch (parseError) {
-      console.error('Failed to parse Runway ML response:', parseError);
-      return res.status(500).json({
-        error: 'Failed to parse API response',
-        details: responseText
-      });
-    }
+    const result = JSON.parse(responseText);
 
     // Return the task ID for status checking
     return res.status(200).json({
