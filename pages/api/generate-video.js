@@ -5,25 +5,16 @@ export default async function handler(req, res) {
 
   const { title, script } = req.body;
 
-  // Debug what we're receiving
-  console.log('Received request body:', req.body);
-  console.log('Title:', title);
-  console.log('Script:', script ? script.substring(0, 100) + '...' : 'No script');
-  console.log('Eden AI Key exists:', !!process.env.EDEN_AI_API_KEY);
+  if (!title || !script) {
+    return res.status(400).json({ error: 'Title and script are required' });
+  }
 
   try {
-    const requestBody = {
-      providers: ['amazon/amazon.nova-reel-v1:0'],
-      text: script || 'Welcome to WealthyMogul.com! This is a test video.',
-      duration: 6,
-      resolution: '1280x720',
-      response_as_dict: true,
-      attributes_as_list: false,
-      show_base_64: false,
-      show_original_response: false
-    };
-
-    console.log('Sending to Eden AI:', JSON.stringify(requestBody, null, 2));
+    // Truncate script to 512 characters max for Amazon Nova Reel
+    const truncatedScript = script.length > 512 ? script.substring(0, 512) + '...' : script;
+    
+    console.log('Original script length:', script.length);
+    console.log('Truncated script length:', truncatedScript.length);
 
     const response = await fetch('https://api.edenai.run/v2/video/generation_async', {
       method: 'POST',
@@ -31,29 +22,51 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${process.env.EDEN_AI_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        providers: ['amazon/amazon.nova-reel-v1:0'],
+        text: truncatedScript, // Use truncated script
+        duration: 6,
+        resolution: '1280x720',
+        response_as_dict: true,
+        attributes_as_list: false,
+        show_base_64: false,
+        show_original_response: false
+      })
     });
 
     const data = await response.json();
     
-    console.log('Eden AI Response Status:', response.status);
-    console.log('Eden AI Response:', JSON.stringify(data, null, 2));
+    if (!response.ok) {
+      console.error('Eden AI Error:', data);
+      return res.status(400).json({ 
+        success: false,
+        error: 'Video generation failed',
+        details: data 
+      });
+    }
 
     return res.status(200).json({
-      debug: true,
-      requestReceived: req.body,
-      sentToEdenAI: requestBody,
-      edenResponse: data,
-      responseStatus: response.status,
-      success: response.ok
+      success: true,
+      title: title,
+      script: truncatedScript, // Return truncated version
+      rawEdenResponse: data,
+      publicId: data.public_id,
+      status: data.status || 'processing',
+      message: 'Video generation request submitted',
+      generatedAt: new Date().toISOString(),
+      provider: 'eden-ai',
+      duration: '6 seconds',
+      resolution: '1280x720',
+      retrieveUrl: `https://api.edenai.run/v2/video/generation_async/${data.public_id}`,
+      note: script.length > 512 ? 'Script was truncated to 512 characters for video generation' : ''
     });
 
   } catch (error) {
-    console.error('Debug error:', error);
+    console.error('Video generation error:', error);
     return res.status(500).json({ 
-      debug: true,
-      error: error.message,
-      stack: error.stack
+      success: false,
+      error: 'Failed to generate video',
+      details: error.message 
     });
   }
 }
