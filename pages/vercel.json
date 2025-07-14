@@ -9,6 +9,11 @@
   "env": {
     "OPENAI_API_KEY": "@openai_api_key",
     "EDEN_AI_API_KEY": "@eden_ai_api_key",
-    "CACHE_BUST": "v2025-07-13"
+    "RUNWAYML_API_SECRET": "@runwayml_api_secret"
+  },
+  "functions": {
+    "pages/api/*.js": {
+      "maxDuration": 60
+    }
   }
 }
