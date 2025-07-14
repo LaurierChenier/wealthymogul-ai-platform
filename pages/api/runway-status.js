@@ -1,4 +1,6 @@
-// Runway ML Status Check API
+import RunwayML from '@runwayml/sdk';
+
+// Runway ML Status Check API using official SDK
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -17,38 +19,27 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Runway ML API key not configured' });
     }
 
-    console.log('Checking Runway ML status for task:', taskId);
-
-    // Make request to Runway ML API to check status using the correct endpoint
-    const response = await fetch(`https://api.runwayml.com/v1/tasks/${taskId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      }
+    // Initialize Runway ML SDK
+    const client = new RunwayML({
+      apiKey: apiKey
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Runway ML status check error:', response.status, errorText);
-      return res.status(response.status).json({ 
-        error: 'Failed to check video status',
-        details: errorText 
-      });
-    }
+    console.log('Checking Runway ML status for task:', taskId);
 
-    const result = await response.json();
-    console.log('Runway ML status response:', result);
+    // Use SDK to retrieve task status
+    const task = await client.tasks.retrieve(taskId);
+
+    console.log('Runway ML SDK status response:', task);
 
     // Extract status and video URL
-    const status = result.status;
+    const status = task.status;
     let videoUrl = null;
     let message = 'Processing professional video...';
 
     if (status === 'SUCCEEDED') {
-      // Extract video URL from artifacts array
-      if (result.artifacts && result.artifacts.length > 0) {
-        videoUrl = result.artifacts[0].url;
+      // Extract video URL from task output
+      if (task.output && task.output.length > 0) {
+        videoUrl = task.output[0];
         message = 'Professional video generated successfully!';
       } else {
         message = 'Video completed but no output found';
@@ -66,14 +57,17 @@ export default async function handler(req, res) {
       message: message,
       provider: 'runway',
       taskId: taskId,
-      progress: result.progress || 0
+      progress: task.progress || 0,
+      sdk_response: task
     });
 
   } catch (error) {
-    console.error('Error checking Runway ML status:', error);
+    console.error('Error checking Runway ML status with SDK:', error);
     return res.status(500).json({ 
       error: 'Failed to check video status',
-      details: error.message 
+      details: error.message,
+      sdk_error: true,
+      api_key_configured: !!process.env.RUNWAYML_API_SECRET
     });
   }
 }
