@@ -30,12 +30,13 @@ export default async function handler(req, res) {
       exploreMode: false
     };
 
-    // Make request to Runway ML API using the correct endpoint (without /v1 prefix)
+    // Make request to Runway ML API with correct endpoint and version header
     const response = await fetch('https://api.runwayml.com/gen3/create', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify(requestBody)
     });
