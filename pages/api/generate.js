@@ -10,39 +10,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a wealth-building content expert. Create engaging video content about financial strategies that helps people build wealth.'
-          },
-          {
-            role: 'user',
-            content: `Create a compelling wealth-building video about "${topic}". Generate: 1) An engaging title, 2) A persuasive 2-sentence description, 3) Category, 4) 5 relevant tags, 5) Opening script (2 sentences). Focus on practical wealth-building strategies.`
-          }
-        ],
-        max_tokens: 400,
-        temperature: 0.7
-      })
-    });
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    // Create safe tag from topic
+    const topicTag = topic ? topic.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-') : 'wealth';
 
-    // Parse AI response or use structured fallback
-    const result = {
-      title: `${topic}: Master Wealth Building Strategies`,
-      description: `Discover proven ${topic.toLowerCase()} techniques that successful investors use to build generational wealth. Learn actionable strategies you can implement today to accelerate your path to financial freedom.`,
+    // Mock AI-generated content with error handling
+    const mockContent = {
+      title: `${topic}: The Ultimate Guide to Building Wealth`,
+      description: `Discover powerful strategies for ${topic.toLowerCase()} that the wealthy use to build generational wealth. Learn insider secrets, proven techniques, and actionable steps you can implement today to start your journey to financial freedom.`,
       category: 'Finance & Business',
       tags: [
-        topic.toLowerCase().replace(/\s+/g, '-'),
+        topicTag,
         'wealth-building',
         'financial-freedom',
         'investment-strategies',
@@ -50,19 +30,16 @@ export default async function handler(req, res) {
       ],
       duration: Math.floor(Math.random() * 15) + 5 + ' minutes',
       thumbnailUrl: null,
-      scriptPreview: `Welcome to WealthyMogul.com! Today we're exploring ${topic}, a powerful wealth-building strategy that can transform your financial future. ${aiResponse.substring(0, 100)}...`,
+      scriptPreview: `Welcome to WealthyMogul.com! Today we're exploring ${topic}, a powerful wealth-building strategy that can transform your financial future.`,
       status: 'generated',
-      generatedAt: new Date().toISOString(),
-      source: 'openai-gpt4o',
-      aiContent: aiResponse
+      generatedAt: new Date().toISOString()
     };
 
-    res.status(200).json(result);
-
+    return res.status(200).json(mockContent);
   } catch (error) {
-    console.error('OpenAI generation error:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate content', 
+    console.error('Generation error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to generate content',
       details: error.message 
     });
   }
