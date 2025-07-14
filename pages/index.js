@@ -45,6 +45,26 @@ export default function HomePage() {
     }
   };
 
+  const handleGenerateRunwayVideo = async () => {
+    if (!generatedVideo) return;
+    try {
+      const response = await fetch('/api/generate-video-runway', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title: generatedVideo.title,
+          script: generatedVideo.scriptPreview 
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setVideoGeneration(result);
+      }
+    } catch (error) {
+      console.error('Runway video generation failed:', error);
+    }
+  };
+
   return (
     <div style={{ padding: '20px' }}>
       <h1>WealthyMogul.com</h1>
@@ -65,19 +85,28 @@ export default function HomePage() {
           <h3>Generated: {generatedVideo.title}</h3>
           <p>{generatedVideo.description}</p>
           
-          <button 
-            onClick={handleGenerateVideo}
-            style={{ marginTop: '10px', padding: '10px', background: '#28a745', color: 'white', border: 'none' }}
-          >
-            Generate Video
-          </button>
+          <div style={{ marginTop: '15px' }}>
+            <button 
+              onClick={handleGenerateVideo}
+              style={{ marginRight: '10px', padding: '10px', background: '#28a745', color: 'white', border: 'none' }}
+            >
+              🟢 Quick Video (6 sec)
+            </button>
+            <button 
+              onClick={handleGenerateRunwayVideo}
+              style={{ padding: '10px', background: '#8a2be2', color: 'white', border: 'none' }}
+            >
+              🟣 Professional Video (10 sec)
+            </button>
+          </div>
         </div>
       )}
 
       {videoGeneration && (
         <div style={{ marginTop: '20px', padding: '20px', background: '#f0f8ff' }}>
           <h4>Video Status: {videoGeneration.status}</h4>
-          <p>ID: {videoGeneration.publicId}</p>
+          <p>Provider: {videoGeneration.provider || 'eden'}</p>
+          <p>ID: {videoGeneration.publicId || videoGeneration.taskId}</p>
         </div>
       )}
     </div>
