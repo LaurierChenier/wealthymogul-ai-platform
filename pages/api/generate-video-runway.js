@@ -1,4 +1,6 @@
-// Runway ML Video Generation API
+import RunwayML from '@runwayml/sdk';
+
+// Runway ML Video Generation API using official SDK
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -17,60 +19,46 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Runway ML API key not configured' });
     }
 
+    // Initialize Runway ML SDK with your existing API key
+    const client = new RunwayML({
+      apiKey: apiKey
+    });
+
     // Prepare the prompt for video generation
     const prompt = `${title}: ${script}`.substring(0, 300);
 
-    console.log('Starting Runway ML video generation with prompt:', prompt);
+    console.log('Starting Runway ML video generation with SDK:', prompt);
+    console.log('API Key configured:', apiKey ? 'Yes' : 'No');
 
-    const requestBody = {
-      model: "gen3a_turbo",
+    // Use SDK for clean, reliable API calls
+    const task = await client.imageToVideo.create({
+      model: 'gen3a_turbo',
       promptText: prompt,
-      seed: Math.floor(Math.random() * 4294967295),
       duration: 10,
-      ratio: "1280:768"
-    };
-
-    // Use the actual latest supported API version (2024-11-06)
-    const response = await fetch('https://api.runwayml.com/v1/image_to_video', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06'
-      },
-      body: JSON.stringify(requestBody)
+      ratio: '1280:768'
     });
 
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      console.error('Runway ML API error:', response.status, responseText);
-      return res.status(response.status).json({ 
-        error: 'Failed to start video generation',
-        details: `API returned ${response.status}: ${responseText}`,
-        endpoint: 'https://api.runwayml.com/v1/image_to_video',
-        requestBody: requestBody,
-        api_key_configured: !!apiKey,
-        api_key_length: apiKey ? apiKey.length : 0
-      });
-    }
-
-    const result = JSON.parse(responseText);
+    console.log('Runway ML SDK response:', task);
 
     // Return the task ID for status checking
     return res.status(200).json({
       success: true,
-      taskId: result.id,
+      taskId: task.id,
       status: 'PENDING',
-      message: 'Professional video generation started successfully',
+      message: 'Professional video generation started successfully using SDK',
       provider: 'runway'
     });
 
   } catch (error) {
-    console.error('Error in Runway ML video generation:', error);
+    console.error('Runway ML SDK error:', error);
+    
+    // Enhanced error handling for SDK
     return res.status(500).json({ 
       error: 'Failed to generate professional video',
-      details: error.message 
+      details: error.message,
+      sdk_error: true,
+      api_key_configured: !!process.env.RUNWAYML_API_SECRET,
+      api_key_length: process.env.RUNWAYML_API_SECRET ? process.env.RUNWAYML_API_SECRET.length : 0
     });
   }
 }
