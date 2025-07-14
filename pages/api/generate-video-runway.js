@@ -28,13 +28,14 @@ export default async function handler(req, res) {
     const prompt = `${title}: ${script}`.substring(0, 300);
 
     console.log('Starting Runway ML video generation with SDK:', prompt);
+    console.log('API Key configured:', apiKey ? 'Yes' : 'No');
 
-    // Use SDK with a placeholder image for text-to-video generation
+    // Use SDK for 30-second professional video generation
     const task = await client.imageToVideo.create({
       model: 'gen3a_turbo',
       promptImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop', // Neutral placeholder
       promptText: prompt,
-      duration: 10,
+      duration: 30,  // Updated from 10 to 30 seconds for true professional videos
       ratio: '1280:768'
     });
 
@@ -45,18 +46,22 @@ export default async function handler(req, res) {
       success: true,
       taskId: task.id,
       status: 'PENDING',
-      message: 'Professional video generation started successfully using SDK',
-      provider: 'runway'
+      message: 'Professional 30-second video generation started successfully using SDK',
+      provider: 'runway',
+      duration: 30
     });
 
   } catch (error) {
     console.error('Runway ML SDK error:', error);
     
+    // Enhanced error handling for SDK
     return res.status(500).json({ 
       error: 'Failed to generate professional video',
       details: error.message,
       sdk_error: true,
-      api_key_configured: !!process.env.RUNWAYML_API_SECRET
+      api_key_configured: !!process.env.RUNWAYML_API_SECRET,
+      api_key_length: process.env.RUNWAYML_API_SECRET ? process.env.RUNWAYML_API_SECRET.length : 0
     });
   }
 }
+# Updated Sun Jul 14 17:29:08 UTC 2025
