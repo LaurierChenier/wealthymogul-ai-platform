@@ -10,45 +10,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Create form data for Eden AI - simplified version
-    const formData = new FormData();
-    formData.append('providers', 'amazon');
-    formData.append('text', script);
-    // Remove settings entirely to use defaults
-    // formData.append('settings', JSON.stringify({
-    //   'amazon': 'amazon.nova-reel-v1:0'
-    // }));
-
-    console.log('Sending request to Eden AI...');
-    console.log('API Key exists:', !!process.env.EDEN_AI_API_KEY);
-    console.log('API Key starts with:', process.env.EDEN_AI_API_KEY?.substring(0, 20));
-
     const response = await fetch('https://api.edenai.run/v2/video/generation_async', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.EDEN_AI_API_KEY}`
+        'Authorization': `Bearer ${process.env.EDEN_AI_API_KEY}`,
+        'Content-Type': 'application/json'
       },
-      body: formData
+      body: JSON.stringify({
+        providers: ['amazon/amazon.nova-reel-v1:0'],
+        text: script,
+        duration: 6,
+        resolution: '1280x720',
+        response_as_dict: true,
+        attributes_as_list: false,
+        show_base_64: false,
+        show_original_response: false
+      })
     });
 
     const data = await response.json();
     
-    console.log('Eden AI Video Generation Response Status:', response.status);
-    console.log('Eden AI Video Generation Response:', JSON.stringify(data, null, 2));
-
     if (!response.ok) {
-      console.error('Eden AI API Error:', data);
-      throw new Error(`Eden AI API error (${response.status}): ${JSON.stringify(data)}`);
+      console.error('Eden AI Error:', data);
+      return res.status(400).json({ 
+        success: false,
+        error: 'Video generation failed',
+        details: data 
+      });
     }
 
-    // Return the public_id for polling
     return res.status(200).json({
       success: true,
       title: title,
       script: script,
       rawEdenResponse: data,
       publicId: data.public_id,
-      status: data.status || 'submitted',
+      status: data.status || 'processing',
       message: 'Video generation request submitted',
       generatedAt: new Date().toISOString(),
       provider: 'eden-ai',
