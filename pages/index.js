@@ -96,10 +96,8 @@ export default function HomePage() {
       let response;
       
       if (videoGeneration.provider === 'runway') {
-        // Use Runway status endpoint
         response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
       } else {
-        // Use Eden AI status endpoint
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -119,6 +117,14 @@ export default function HomePage() {
     }
   };
 
+  const isVideoProcessing = (status) => {
+    const processingStates = [
+      'processing', 'pending', 'running',
+      'PROCESSING', 'PENDING', 'RUNNING'
+    ];
+    return processingStates.includes(status);
+  };
+
   return (
     <div style={{ 
       fontFamily: 'Arial, sans-serif', 
@@ -128,7 +134,6 @@ export default function HomePage() {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh'
     }}>
-      {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
         <h1 style={{ 
           color: '#fff', 
@@ -147,7 +152,6 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* AI Generator Section */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -300,7 +304,7 @@ export default function HomePage() {
               <strong>Status:</strong> 
               <span style={{ 
                 color: videoGeneration.status === 'completed' || videoGeneration.status === 'succeeded' ? '#28a745' : 
-                      videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' ? '#ffc107' : '#dc3545',
+                      isVideoProcessing(videoGeneration.status) ? '#ffc107' : '#dc3545',
                 marginLeft: '8px',
                 fontWeight: 'bold'
               }}>
@@ -327,7 +331,7 @@ export default function HomePage() {
               <strong>Message:</strong> {videoGeneration.message}
             </div>
 
-            {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' || videoGeneration.status === 'PENDING' || videoGeneration.status === 'PROCESSING' || videoGeneration.status === 'RUNNING') && (
+            {isVideoProcessing(videoGeneration.status) && (
               <button 
                 onClick={handleRetrieveVideo}
                 disabled={isRetrieving}
@@ -369,7 +373,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Revenue Dashboard */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -426,7 +429,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Features Grid */}
       <div style={{ 
         marginTop: '40px',
         display: 'grid', 
