@@ -36,8 +36,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         assetId: assetId,
