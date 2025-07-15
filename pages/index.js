@@ -96,8 +96,10 @@ export default function HomePage() {
       let response;
       
       if (videoGeneration.provider === 'runway') {
+        // Use Runway status endpoint
         response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
       } else {
+        // Use Eden AI status endpoint
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -112,6 +114,157 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Video retrieval failed:', error);
+    } finally {
+      setIsRetrieving(false);
+    }
+  };
+
+  const handleExtendVideo = async () => {
+    if (!videoGeneration?.taskId) return;
+    
+    setIsRetrieving(true);
+    try {
+      console.log('Starting video extension process...');
+      
+      // Stage 2 Extension
+      const stage2Response = await fetch('/api/runway-extend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assetId: videoGeneration.taskId,
+          stage: 2,
+          originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
+          previousVideoUrl: videoGeneration.videoUrl
+        })
+      });
+      
+      if (stage2Response.ok) {
+        const stage2Result = await stage2Response.json();
+        console.log('Stage 2 extension started:', stage2Result);
+        
+        // Update UI to show extension in progress
+        setVideoGeneration(prev => ({
+          ...prev,
+          status: 'processing',
+          message: 'Extending video to 18 seconds (Stage 2/4)...',
+          progress: 50,
+          currentStage: 2,
+          extendingTaskId: stage2Result.taskId
+        }));
+        
+        // Poll for Stage 2 completion
+        const pollStage2 = async () => {
+          const statusResponse = await fetch(`/api/runway-status?taskId=${stage2Result.taskId}`);
+          const statusResult = await statusResponse.json();
+          
+          if (statusResult.status === 'succeeded') {
+            console.log('Stage 2 completed, starting Stage 3...');
+            
+            // Stage 3 Extension
+            const stage3Response = await fetch('/api/runway-extend', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                assetId: stage2Result.taskId,
+                stage: 3,
+                originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
+                previousVideoUrl: statusResult.videoUrl
+              })
+            });
+            
+            if (stage3Response.ok) {
+              const stage3Result = await stage3Response.json();
+              
+              setVideoGeneration(prev => ({
+                ...prev,
+                message: 'Extending video to 26 seconds (Stage 3/4)...',
+                progress: 75,
+                currentStage: 3,
+                extendingTaskId: stage3Result.taskId
+              }));
+              
+              // Poll for Stage 3 completion
+              const pollStage3 = async () => {
+                const status3Response = await fetch(`/api/runway-status?taskId=${stage3Result.taskId}`);
+                const status3Result = await status3Response.json();
+                
+                if (status3Result.status === 'succeeded') {
+                  console.log('Stage 3 completed, starting Stage 4...');
+                  
+                  // Stage 4 Extension (Final)
+                  const stage4Response = await fetch('/api/runway-extend', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      assetId: stage3Result.taskId,
+                      stage: 4,
+                      originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
+                      previousVideoUrl: status3Result.videoUrl
+                    })
+                  });
+                  
+                  if (stage4Response.ok) {
+                    const stage4Result = await stage4Response.json();
+                    
+                    setVideoGeneration(prev => ({
+                      ...prev,
+                      message: 'Final extension to 34 seconds (Stage 4/4)...',
+                      progress: 90,
+                      currentStage: 4,
+                      extendingTaskId: stage4Result.taskId
+                    }));
+                    
+                    // Poll for final completion
+                    const pollFinal = async () => {
+                      const finalResponse = await fetch(`/api/runway-status?taskId=${stage4Result.taskId}`);
+                      const finalResult = await finalResponse.json();
+                      
+                      if (finalResult.status === 'succeeded') {
+                        setVideoGeneration(prev => ({
+                          ...prev,
+                          status: 'succeeded',
+                          message: '34-second professional video completed!',
+                          progress: 100,
+                          currentStage: 4,
+                          videoUrl: finalResult.videoUrl,
+                          duration: '34 seconds'
+                        }));
+                      } else if (finalResult.status === 'failed') {
+                        setVideoGeneration(prev => ({
+                          ...prev,
+                          status: 'failed',
+                          message: 'Final extension failed'
+                        }));
+                      } else {
+                        setTimeout(pollFinal, 5000);
+                      }
+                    };
+                    
+                    setTimeout(pollFinal, 5000);
+                  }
+                }
+              };
+              
+              setTimeout(pollStage3, 5000);
+            }
+          }
+        };
+        
+        setTimeout(pollStage2, 5000);
+      }
+    } catch (error) {
+      console.error('Video extension failed:', error);
+      setVideoGeneration(prev => ({
+        ...prev,
+        status: 'failed',
+        message: 'Video extension failed'
+      }));
     } finally {
       setIsRetrieving(false);
     }
@@ -249,7 +402,7 @@ export default function HomePage() {
                     fontWeight: 'bold',
                     minWidth: '160px'
                   }}>
-                  🟣 Professional Video (30 sec)
+                  🟣 Professional Video (10-34 sec)
                   <br />
                   <small style={{ fontSize: '11px', opacity: 0.9 }}>Runway ML • $7-15 • 3-5 mins</small>
                 </button>
@@ -352,21 +505,39 @@ export default function HomePage() {
               <div style={{ marginTop: '15px' }}>
                 <strong style={{ color: '#28a745' }}>✅ Video Ready!</strong>
                 <br />
-                <a 
-                  href={videoGeneration.videoUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-block',
-                    padding: '8px 16px',
-                    background: '#28a745',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '3px',
-                    marginTop: '10px'
-                  }}>
-                  Download Video
-                </a>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <a 
+                    href={videoGeneration.videoUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '8px 16px',
+                      background: '#28a745',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '3px'
+                    }}>
+                    Download Video ({videoGeneration.duration || '10 seconds'})
+                  </a>
+                  
+                  {videoGeneration.provider === 'runway' && videoGeneration.currentStage === 4 && !videoGeneration.duration?.includes('34') && (
+                    <button 
+                      onClick={handleExtendVideo}
+                      disabled={isRetrieving}
+                      style={{
+                        padding: '8px 16px',
+                        background: isRetrieving ? '#ccc' : '#8a2be2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: isRetrieving ? 'not-allowed' : 'pointer'
+                      }}>
+                      {isRetrieving ? 'Extending...' : 'Extend to 34 seconds'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
