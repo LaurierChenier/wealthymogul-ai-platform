@@ -10,7 +10,7 @@ export default function HomePage() {
   const [useOwnScript, setUseOwnScript] = useState(false);
   const [youtubeLength, setYoutubeLength] = useState(120);
   const [instagramLength, setInstagramLength] = useState(30);
-  const [selectedAvatar, setSelectedAvatar] = useState('sonia_costume1_cameraA');
+  const [selectedAvatar, setSelectedAvatar] = useState('daisy_wealth_mogul'); // Daisy as default
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -178,7 +178,6 @@ export default function HomePage() {
       if (videoGeneration.provider === 'heygen') {
         response = await fetch(`/api/heygen-status?videoId=${videoGeneration.videoId}`);
       } else {
-        // Eden AI fallback
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -409,6 +408,11 @@ export default function HomePage() {
                     minWidth: '250px'
                   }}
                 >
+                  <optgroup label="🏢 Wealthy Mogul Team">
+                    <option value="daisy_wealth_mogul">Daisy from Wealth Mogul</option>
+                    <option value="laurier_wealth_mogul">Laurier from Wealth Mogul</option>
+                    <option value="mason_wealth_mogul">Mason from Wealth Mogul</option>
+                  </optgroup>
                   <optgroup label="👩 Female Avatars">
                     <option value="sonia_costume1_cameraA">Lina - Professional Business</option>
                     <option value="anna_costume1_cameraA">Angela - Executive Style</option>
@@ -423,13 +427,15 @@ export default function HomePage() {
                     <option value="james_costume1_cameraA">Eric - Real Estate Pro</option>
                     <option value="alex_costume1_cameraA">John - Financial Consultant</option>
                   </optgroup>
-                  <optgroup label="🌍 Diverse Avatars">
-                    <option value="priya_costume1_cameraA">Lindiwe - International Business</option>
-                    <option value="carlos_costume1_cameraA">Carlos - Global Markets</option>
-                    <option value="nina_costume1_cameraA">Nina - Tech Professional</option>
-                    <option value="ryan_costume1_cameraA">Ryan - Investment Strategist</option>
-                  </optgroup>
                 </select>
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                  💡 Preview: <strong>{
+                    selectedAvatar === 'daisy_wealth_mogul' ? 'Daisy from Wealth Mogul' :
+                    selectedAvatar === 'laurier_wealth_mogul' ? 'Laurier from Wealth Mogul' :
+                    selectedAvatar === 'mason_wealth_mogul' ? 'Mason from Wealth Mogul' :
+                    selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1)
+                  }</strong> will be your video presenter
+                </div>
               </div>
 
               <div style={{ marginBottom: '15px' }}>
@@ -579,6 +585,10 @@ export default function HomePage() {
               }}>
                 {videoGeneration.status?.toUpperCase() || 'SUBMITTED'}
               </span>
+            </div>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Avatar:</strong> {videoGeneration.avatarName || 'Default'}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
