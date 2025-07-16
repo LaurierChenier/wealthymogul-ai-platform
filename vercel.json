@@ -1,9 +1,5 @@
 {
   "version": 2,
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "SYNTHESIA_API_KEY": "@synthesia_api_key"
-  },
   "functions": {
     "pages/api/*.js": {
       "maxDuration": 60
