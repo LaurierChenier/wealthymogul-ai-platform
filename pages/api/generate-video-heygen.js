@@ -22,14 +22,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'HeyGen API key not configured' });
     }
 
-    // Avatar mapping with correct gender assignments - using stock avatars until custom ones are created
+    // Avatar mapping with YOUR CUSTOM AVATARS
     const avatarMapping = {
-      // Custom Wealthy Mogul avatars - mapped to working stock avatars with correct genders
-      'daisy_wealth_mogul': 'Angela-inblackskirt-20220820',    // Female
-      'laurier_wealth_mogul': 'Josh_20230826_135716_image',    // Male (corrected)
-      'mason_wealth_mogul': 'Josh_20230826_135716_image',      // Male
+      // Custom Wealthy Mogul avatars - YOUR ACTUAL AVATARS
+      'daisy_wealth_mogul': 'ae573c3333854730a9077d80b53d97e5',     // Daisy (female)
+      'laurier_wealth_mogul': '7f7b982477074c11b8593d0c60690f0a',   // Laurier (male)
+      'mason_wealth_mogul': 'f379aa769b474121a59c128ebdcee2ad',     // Mason (male)
       
-      // HeyGen stock avatars (commonly available)
+      // HeyGen stock avatars (fallback)
       'sonia_costume1_cameraA': 'Josh_20230826_135716_image',
       'female_professional_1': 'Angela-inblackskirt-20220820',
       'female_professional_2': 'Daisy-inskirt-20220818',
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       'male_casual_2': 'Josh_20230826_135716_image'
     };
 
-    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820';
+    const heygenAvatar = avatarMapping[avatar] || 'ae573c3333854730a9077d80b53d97e5'; // Default to Daisy
     
     // Voice selection based on avatar gender
     let voiceId = '119caed25533477ba63822d5d1552d25'; // Default female voice
