@@ -8,9 +8,9 @@ export default function HomePage() {
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [editedScript, setEditedScript] = useState('');
   const [useOwnScript, setUseOwnScript] = useState(false);
-  const [youtubeLength, setYoutubeLength] = useState(120); // Default 2 minutes
-  const [instagramLength, setInstagramLength] = useState(30); // Default 30 seconds
-  const [selectedAvatar, setSelectedAvatar] = useState('sonia_costume1_cameraA'); // Default avatar
+  const [youtubeLength, setYoutubeLength] = useState(120);
+  const [instagramLength, setInstagramLength] = useState(30);
+  const [selectedAvatar, setSelectedAvatar] = useState('sonia_costume1_cameraA');
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -39,7 +39,6 @@ export default function HomePage() {
   const handleCreateVideoSetup = () => {
     if (!topic.trim()) return;
     
-    // For "My Own Script" mode, create a minimal video object
     const videoSetup = {
       title: topic,
       description: 'Custom video with user-provided script',
@@ -110,7 +109,7 @@ export default function HomePage() {
     
     setIsRetrieving(true);
     try {
-      const response = await fetch('/api/generate-video-synthesia', {
+      const response = await fetch('/api/generate-video-heygen', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -142,14 +141,14 @@ export default function HomePage() {
     
     setIsRetrieving(true);
     try {
-      const response = await fetch('/api/generate-video-synthesia', {
+      const response = await fetch('/api/generate-video-heygen', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: editedScript.substring(0, instagramLength === 30 ? 200 : 400), // Adjust script length based on duration
+          script: editedScript.substring(0, instagramLength === 30 ? 200 : 400),
           duration: instagramLength,
           platform: 'instagram',
           avatar: selectedAvatar
@@ -176,14 +175,11 @@ export default function HomePage() {
     try {
       let response;
       
-      if (videoGeneration.provider === 'synthesia') {
-        // Use Synthesia status endpoint
+      if (videoGeneration.provider === 'heygen') {
+        response = await fetch(`/api/heygen-status?videoId=${videoGeneration.videoId}`);
+      } else if (videoGeneration.provider === 'synthesia') {
         response = await fetch(`/api/synthesia-status?videoId=${videoGeneration.videoId}`);
-      } else if (videoGeneration.provider === 'runway') {
-        // Use Runway status endpoint
-        response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
       } else {
-        // Use Eden AI status endpoint
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -203,157 +199,6 @@ export default function HomePage() {
     }
   };
 
-  const handleExtendVideo = async () => {
-    if (!videoGeneration?.taskId) return;
-    
-    setIsRetrieving(true);
-    try {
-      console.log('Starting video extension process...');
-      
-      // Stage 2 Extension
-      const stage2Response = await fetch('/api/runway-extend', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          assetId: videoGeneration.taskId,
-          stage: 2,
-          originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
-          previousVideoUrl: videoGeneration.videoUrl
-        })
-      });
-      
-      if (stage2Response.ok) {
-        const stage2Result = await stage2Response.json();
-        console.log('Stage 2 extension started:', stage2Result);
-        
-        // Update UI to show extension in progress
-        setVideoGeneration(prev => ({
-          ...prev,
-          status: 'processing',
-          message: 'Extending video to 18 seconds (Stage 2/4)...',
-          progress: 50,
-          currentStage: 2,
-          extendingTaskId: stage2Result.taskId
-        }));
-        
-        // Poll for Stage 2 completion
-        const pollStage2 = async () => {
-          const statusResponse = await fetch(`/api/runway-status?taskId=${stage2Result.taskId}`);
-          const statusResult = await statusResponse.json();
-          
-          if (statusResult.status === 'succeeded') {
-            console.log('Stage 2 completed, starting Stage 3...');
-            
-            // Stage 3 Extension
-            const stage3Response = await fetch('/api/runway-extend', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                assetId: stage2Result.taskId,
-                stage: 3,
-                originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
-                previousVideoUrl: statusResult.videoUrl
-              })
-            });
-            
-            if (stage3Response.ok) {
-              const stage3Result = await stage3Response.json();
-              
-              setVideoGeneration(prev => ({
-                ...prev,
-                message: 'Extending video to 26 seconds (Stage 3/4)...',
-                progress: 75,
-                currentStage: 3,
-                extendingTaskId: stage3Result.taskId
-              }));
-              
-              // Poll for Stage 3 completion
-              const pollStage3 = async () => {
-                const status3Response = await fetch(`/api/runway-status?taskId=${stage3Result.taskId}`);
-                const status3Result = await status3Response.json();
-                
-                if (status3Result.status === 'succeeded') {
-                  console.log('Stage 3 completed, starting Stage 4...');
-                  
-                  // Stage 4 Extension (Final)
-                  const stage4Response = await fetch('/api/runway-extend', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      assetId: stage3Result.taskId,
-                      stage: 4,
-                      originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
-                      previousVideoUrl: status3Result.videoUrl
-                    })
-                  });
-                  
-                  if (stage4Response.ok) {
-                    const stage4Result = await stage4Response.json();
-                    
-                    setVideoGeneration(prev => ({
-                      ...prev,
-                      message: 'Final extension to 34 seconds (Stage 4/4)...',
-                      progress: 90,
-                      currentStage: 4,
-                      extendingTaskId: stage4Result.taskId
-                    }));
-                    
-                    // Poll for final completion
-                    const pollFinal = async () => {
-                      const finalResponse = await fetch(`/api/runway-status?taskId=${stage4Result.taskId}`);
-                      const finalResult = await finalResponse.json();
-                      
-                      if (finalResult.status === 'succeeded') {
-                        setVideoGeneration(prev => ({
-                          ...prev,
-                          status: 'succeeded',
-                          message: '34-second professional video completed!',
-                          progress: 100,
-                          currentStage: 4,
-                          videoUrl: finalResult.videoUrl,
-                          duration: '34 seconds'
-                        }));
-                      } else if (finalResult.status === 'failed') {
-                        setVideoGeneration(prev => ({
-                          ...prev,
-                          status: 'failed',
-                          message: 'Final extension failed'
-                        }));
-                      } else {
-                        setTimeout(pollFinal, 5000);
-                      }
-                    };
-                    
-                    setTimeout(pollFinal, 5000);
-                  }
-                }
-              };
-              
-              setTimeout(pollStage3, 5000);
-            }
-          }
-        };
-        
-        setTimeout(pollStage2, 5000);
-      }
-    } catch (error) {
-      console.error('Video extension failed:', error);
-      setVideoGeneration(prev => ({
-        ...prev,
-        status: 'failed',
-        message: 'Video extension failed'
-      }));
-    } finally {
-      setIsRetrieving(false);
-    }
-  };
-
   return (
     <div style={{ 
       fontFamily: 'Arial, sans-serif', 
@@ -363,7 +208,6 @@ export default function HomePage() {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh'
     }}>
-      {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
         <h1 style={{ 
           color: '#fff', 
@@ -378,11 +222,10 @@ export default function HomePage() {
           fontSize: '1.2rem',
           margin: '0'
         }}>
-          AI-Powered Wealth Building Content Platform
+          AI-Powered Real Estate Education Platform
         </p>
       </header>
 
-      {/* AI Generator Section */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -392,7 +235,6 @@ export default function HomePage() {
       }}>
         <h2 style={{ color: '#333', marginBottom: '20px' }}>AI Video Generator</h2>
         
-        {/* Script Mode Selection */}
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ color: '#666', marginBottom: '10px', fontSize: '16px' }}>Choose Script Mode:</h3>
           <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
@@ -424,7 +266,7 @@ export default function HomePage() {
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder={useOwnScript ? "Enter video title" : "Enter wealth building topic (e.g., 'Real Estate Investment Strategies')"}
+            placeholder={useOwnScript ? "Enter video title" : "Enter real estate topic (e.g., 'Property Investment Strategies')"}
             style={{
               flex: '1',
               padding: '12px',
@@ -451,7 +293,6 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Script Editing Section */}
         {(generatedVideo || useOwnScript) && (
           <div style={{ 
             background: '#f0f8ff', 
@@ -552,7 +393,6 @@ export default function HomePage() {
             <div style={{ marginBottom: '20px' }}>
               <h4 style={{ color: '#0066cc', marginBottom: '15px' }}>Choose Video Type & Duration:</h4>
               
-              {/* Avatar Selection */}
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                   Choose Your AI Avatar:
@@ -571,50 +411,28 @@ export default function HomePage() {
                   }}
                 >
                   <optgroup label="👩 Female Avatars">
-                    <option value="sonia_costume1_cameraA">Sonia - Business Professional</option>
-                    <option value="anna_costume1_cameraA">Anna - Executive Style</option>
-                    <option value="emma_costume1_cameraA">Emma - Modern Professional</option>
-                    <option value="lisa_costume1_cameraA">Lisa - Corporate Presenter</option>
-                    <option value="sarah_costume1_cameraA">Sarah - Financial Expert</option>
+                    <option value="sonia_costume1_cameraA">Lina - Professional Business</option>
+                    <option value="anna_costume1_cameraA">Angela - Executive Style</option>
+                    <option value="emma_costume1_cameraA">Abigail - Modern Professional</option>
+                    <option value="lisa_costume1_cameraA">Gala - Corporate Presenter</option>
+                    <option value="sarah_costume1_cameraA">Milena - Financial Expert</option>
                   </optgroup>
                   <optgroup label="👨 Male Avatars">
-                    <option value="matthew_costume1_cameraA">Matthew - Business Leader</option>
-                    <option value="mike_costume1_cameraA">Mike - Professional Advisor</option>
+                    <option value="matthew_costume1_cameraA">Richard - Business Leader</option>
+                    <option value="mike_costume1_cameraA">James - Professional Advisor</option>
                     <option value="david_costume1_cameraA">David - Investment Expert</option>
-                    <option value="james_costume1_cameraA">James - Real Estate Pro</option>
-                    <option value="alex_costume1_cameraA">Alex - Financial Consultant</option>
+                    <option value="james_costume1_cameraA">Eric - Real Estate Pro</option>
+                    <option value="alex_costume1_cameraA">John - Financial Consultant</option>
                   </optgroup>
                   <optgroup label="🌍 Diverse Avatars">
-                    <option value="priya_costume1_cameraA">Priya - International Business</option>
+                    <option value="priya_costume1_cameraA">Lindiwe - International Business</option>
                     <option value="carlos_costume1_cameraA">Carlos - Global Markets</option>
                     <option value="nina_costume1_cameraA">Nina - Tech Professional</option>
                     <option value="ryan_costume1_cameraA">Ryan - Investment Strategist</option>
                   </optgroup>
                 </select>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                  💡 Preview: <strong>{selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1)}</strong> will be your video presenter
-                  <br />
-                  <span style={{ fontSize: '11px', color: '#888' }}>
-                    {selectedAvatar.includes('sonia') ? '👩 Professional businesswoman, confident and engaging' :
-                     selectedAvatar.includes('anna') ? '👩 Executive style, authoritative and polished' :
-                     selectedAvatar.includes('emma') ? '👩 Modern professional, approachable and friendly' :
-                     selectedAvatar.includes('lisa') ? '👩 Corporate presenter, clear and articulate' :
-                     selectedAvatar.includes('sarah') ? '👩 Financial expert, knowledgeable and trustworthy' :
-                     selectedAvatar.includes('matthew') ? '👨 Business leader, commanding and professional' :
-                     selectedAvatar.includes('mike') ? '👨 Professional advisor, experienced and reliable' :
-                     selectedAvatar.includes('david') ? '👨 Investment expert, analytical and precise' :
-                     selectedAvatar.includes('james') ? '👨 Real estate professional, industry specialist' :
-                     selectedAvatar.includes('alex') ? '👨 Financial consultant, strategic and insightful' :
-                     selectedAvatar.includes('priya') ? '👩 International business expert, global perspective' :
-                     selectedAvatar.includes('carlos') ? '👨 Global markets specialist, multicultural appeal' :
-                     selectedAvatar.includes('nina') ? '👩 Tech professional, innovative and forward-thinking' :
-                     selectedAvatar.includes('ryan') ? '👨 Investment strategist, analytical and results-driven' :
-                     'Professional AI presenter'}
-                  </span>
-                </div>
               </div>
 
-              {/* YouTube Duration Selection */}
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                   YouTube Video Duration:
@@ -642,7 +460,6 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {/* Instagram Duration Selection */}
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                   Instagram Video Duration:
@@ -702,7 +519,7 @@ export default function HomePage() {
                   }}>
                   🎬 YouTube Video ({youtubeLength/60}min)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • AI Avatar • 2-3 mins</small>
                 </button>
                 <button 
                   onClick={handleGenerateInstagramVideo}
@@ -720,7 +537,7 @@ export default function HomePage() {
                   }}>
                   📱 Instagram Video ({instagramLength}sec)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • AI Avatar • 2-3 mins</small>
                 </button>
               </div>
               {!editedScript.trim() && (
@@ -728,29 +545,6 @@ export default function HomePage() {
                   ⚠️ Please enter a script to generate videos
                 </p>
               )}
-            </div>
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button style={{
-                padding: '8px 16px',
-                background: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
-              }}>
-                Upload to YouTube
-              </button>
-              <button style={{
-                padding: '8px 16px',
-                background: '#e1306c',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
-              }}>
-                Post to Instagram
-              </button>
             </div>
           </div>
         )}
@@ -764,16 +558,16 @@ export default function HomePage() {
             marginTop: '20px'
           }}>
             <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>
-              {videoGeneration.provider === 'synthesia' ? 'AI Avatar Video Generation Status:' :
-               videoGeneration.provider === 'runway' ? 'Professional Video Generation Status:' : 
+              {videoGeneration.provider === 'heygen' ? 'HeyGen AI Avatar Video Status:' :
+               videoGeneration.provider === 'synthesia' ? 'Synthesia AI Avatar Video Status:' : 
                'AI Video Generation Status:'}
             </h3>
             
             <div style={{ marginBottom: '10px' }}>
               <strong>Provider:</strong> 
               <span style={{ marginLeft: '8px' }}>
-                {videoGeneration.provider === 'synthesia' ? 'Synthesia (AI Avatar)' : 
-                 videoGeneration.provider === 'runway' ? 'Runway ML (Professional)' : 
+                {videoGeneration.provider === 'heygen' ? 'HeyGen (AI Avatar)' : 
+                 videoGeneration.provider === 'synthesia' ? 'Synthesia (AI Avatar)' : 
                  'Eden AI (Quick)'}
               </span>
             </div>
@@ -782,21 +576,16 @@ export default function HomePage() {
               <strong>Status:</strong> 
               <span style={{ 
                 color: videoGeneration.status === 'completed' || videoGeneration.status === 'succeeded' ? '#28a745' : 
-                      videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' ? '#ffc107' : '#dc3545',
+                      videoGeneration.status === 'processing' || videoGeneration.status === 'pending' ? '#ffc107' : '#dc3545',
                 marginLeft: '8px',
                 fontWeight: 'bold'
               }}>
                 {videoGeneration.status?.toUpperCase() || 'SUBMITTED'}
               </span>
-              {videoGeneration.progress && (
-                <span style={{ marginLeft: '8px', color: '#666' }}>
-                  ({videoGeneration.progress}%)
-                </span>
-              )}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
-              <strong>ID:</strong> {videoGeneration.publicId || videoGeneration.videoId || videoGeneration.taskId}
+              <strong>ID:</strong> {videoGeneration.videoId}
             </div>
             
             {videoGeneration.lastChecked && (
@@ -809,7 +598,7 @@ export default function HomePage() {
               <strong>Message:</strong> {videoGeneration.message}
             </div>
 
-            {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' || videoGeneration.status === 'PENDING' || videoGeneration.status === 'PROCESSING' || videoGeneration.status === 'RUNNING') && (
+            {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending') && (
               <button 
                 onClick={handleRetrieveVideo}
                 disabled={isRetrieving}
@@ -830,7 +619,6 @@ export default function HomePage() {
               <div style={{ marginTop: '15px' }}>
                 <strong style={{ color: '#28a745' }}>✅ Video Ready!</strong>
                 <br />
-                
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                   <a 
                     href={videoGeneration.videoUrl} 
@@ -844,24 +632,8 @@ export default function HomePage() {
                       textDecoration: 'none',
                       borderRadius: '3px'
                     }}>
-                    Download Video ({videoGeneration.duration || '10 seconds'})
+                    Download Video
                   </a>
-                  
-                  {videoGeneration.provider === 'runway' && videoGeneration.currentStage === 4 && !videoGeneration.duration?.includes('34') && (
-                    <button 
-                      onClick={handleExtendVideo}
-                      disabled={isRetrieving}
-                      style={{
-                        padding: '8px 16px',
-                        background: isRetrieving ? '#ccc' : '#8a2be2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        cursor: isRetrieving ? 'not-allowed' : 'pointer'
-                      }}>
-                      {isRetrieving ? 'Extending...' : 'Extend to 34 seconds'}
-                    </button>
-                  )}
                 </div>
               </div>
             )}
@@ -869,7 +641,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Revenue Dashboard */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -923,42 +694,6 @@ export default function HomePage() {
           <h3 style={{ color: '#28a745', margin: '0 0 10px 0' }}>Total Revenue</h3>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#28a745' }}>$0.00</div>
           <div style={{ color: '#666' }}>Combined earnings from all platforms</div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div style={{ 
-        marginTop: '40px',
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '20px' 
-      }}>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>🤖 AI Content Generation</h3>
-          <p style={{ color: '#666' }}>Generate wealth-building video scripts, titles, and descriptions instantly</p>
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>📱 Multi-Platform Publishing</h3>
-          <p style={{ color: '#666' }}>Automatically distribute content to YouTube and Instagram</p>
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>💰 Revenue Optimization</h3>
-          <p style={{ color: '#666' }}>Triple revenue streams with AdSense, YouTube, and Instagram monetization</p>
         </div>
       </div>
     </div>
