@@ -4,32 +4,16 @@ export default function HomePage() {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
-  const [editedScript, setEditedScript] = useState('');
-  const [useOwnScript, setUseOwnScript] = useState(false);
   const [videoGeneration, setVideoGeneration] = useState(null);
   const [isRetrieving, setIsRetrieving] = useState(false);
+  const [editedScript, setEditedScript] = useState('');
+  const [useOwnScript, setUseOwnScript] = useState(false);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
     
     setIsGenerating(true);
     setVideoGeneration(null);
-    
-    if (useOwnScript) {
-      // Skip AI generation, create basic structure for user's own script
-      const basicContent = {
-        title: topic,
-        description: `Custom video about ${topic}`,
-        category: 'Real Estate Education',
-        tags: ['real estate', 'education', 'wealth building'],
-        scriptPreview: '' // Start with blank script
-      };
-      setGeneratedVideo(basicContent);
-      setEditedScript(''); // Clear for user's own script
-      setIsGenerating(false);
-      return;
-    }
-    
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -41,7 +25,7 @@ export default function HomePage() {
       
       const result = await response.json();
       setGeneratedVideo(result);
-      setEditedScript(result.scriptPreview || ''); // Initialize with AI script
+      setEditedScript(result.scriptPreview || '');
     } catch (error) {
       console.error('Generation failed:', error);
     } finally {
@@ -49,14 +33,19 @@ export default function HomePage() {
     }
   };
 
-  const handleClearScript = () => {
-    setEditedScript('');
-  };
-
-  const handleUseAIScript = () => {
-    if (generatedVideo?.scriptPreview) {
-      setEditedScript(generatedVideo.scriptPreview);
-    }
+  const handleCreateVideoSetup = () => {
+    if (!topic.trim()) return;
+    
+    // For "My Own Script" mode, create a minimal video object
+    const videoSetup = {
+      title: topic,
+      description: 'Custom video with user-provided script',
+      category: 'Wealth Building',
+      tags: ['wealth', 'finance', 'custom'],
+      scriptPreview: editedScript
+    };
+    
+    setGeneratedVideo(videoSetup);
   };
 
   const handleUpdateScript = () => {
@@ -68,8 +57,24 @@ export default function HomePage() {
     }
   };
 
+  const handleClearScript = () => {
+    setEditedScript('');
+    if (generatedVideo) {
+      setGeneratedVideo(prev => ({
+        ...prev,
+        scriptPreview: ''
+      }));
+    }
+  };
+
+  const handleUseAIScript = () => {
+    if (generatedVideo) {
+      setEditedScript(generatedVideo.scriptPreview || '');
+    }
+  };
+
   const handleGenerateVideo = async () => {
-    if (!generatedVideo) return;
+    if (!generatedVideo || !editedScript.trim()) return;
     
     setIsRetrieving(true);
     try {
@@ -80,7 +85,7 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: editedScript || generatedVideo.scriptPreview
+          script: editedScript 
         }),
       });
       
@@ -98,7 +103,7 @@ export default function HomePage() {
   };
 
   const handleGenerateYouTubeVideo = async () => {
-    if (!generatedVideo) return;
+    if (!generatedVideo || !editedScript.trim()) return;
     
     setIsRetrieving(true);
     try {
@@ -109,7 +114,7 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: editedScript || generatedVideo.scriptPreview,
+          script: editedScript,
           duration: 120,
           platform: 'youtube'
         }),
@@ -129,7 +134,7 @@ export default function HomePage() {
   };
 
   const handleGenerateInstagramVideo = async () => {
-    if (!generatedVideo) return;
+    if (!generatedVideo || !editedScript.trim()) return;
     
     setIsRetrieving(true);
     try {
@@ -140,7 +145,7 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: editedScript || generatedVideo.scriptPreview,
+          script: editedScript.substring(0, 200), // Shorter script for Instagram
           duration: 30,
           platform: 'instagram'
         }),
@@ -167,10 +172,13 @@ export default function HomePage() {
       let response;
       
       if (videoGeneration.provider === 'synthesia') {
+        // Use Synthesia status endpoint
         response = await fetch(`/api/synthesia-status?videoId=${videoGeneration.videoId}`);
       } else if (videoGeneration.provider === 'runway') {
+        // Use Runway status endpoint
         response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
       } else {
+        // Use Eden AI status endpoint
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -190,12 +198,155 @@ export default function HomePage() {
     }
   };
 
-  const isVideoProcessing = (status) => {
-    const processingStates = [
-      'processing', 'pending', 'running',
-      'PROCESSING', 'PENDING', 'RUNNING'
-    ];
-    return processingStates.includes(status);
+  const handleExtendVideo = async () => {
+    if (!videoGeneration?.taskId) return;
+    
+    setIsRetrieving(true);
+    try {
+      console.log('Starting video extension process...');
+      
+      // Stage 2 Extension
+      const stage2Response = await fetch('/api/runway-extend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assetId: videoGeneration.taskId,
+          stage: 2,
+          originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
+          previousVideoUrl: videoGeneration.videoUrl
+        })
+      });
+      
+      if (stage2Response.ok) {
+        const stage2Result = await stage2Response.json();
+        console.log('Stage 2 extension started:', stage2Result);
+        
+        // Update UI to show extension in progress
+        setVideoGeneration(prev => ({
+          ...prev,
+          status: 'processing',
+          message: 'Extending video to 18 seconds (Stage 2/4)...',
+          progress: 50,
+          currentStage: 2,
+          extendingTaskId: stage2Result.taskId
+        }));
+        
+        // Poll for Stage 2 completion
+        const pollStage2 = async () => {
+          const statusResponse = await fetch(`/api/runway-status?taskId=${stage2Result.taskId}`);
+          const statusResult = await statusResponse.json();
+          
+          if (statusResult.status === 'succeeded') {
+            console.log('Stage 2 completed, starting Stage 3...');
+            
+            // Stage 3 Extension
+            const stage3Response = await fetch('/api/runway-extend', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                assetId: stage2Result.taskId,
+                stage: 3,
+                originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
+                previousVideoUrl: statusResult.videoUrl
+              })
+            });
+            
+            if (stage3Response.ok) {
+              const stage3Result = await stage3Response.json();
+              
+              setVideoGeneration(prev => ({
+                ...prev,
+                message: 'Extending video to 26 seconds (Stage 3/4)...',
+                progress: 75,
+                currentStage: 3,
+                extendingTaskId: stage3Result.taskId
+              }));
+              
+              // Poll for Stage 3 completion
+              const pollStage3 = async () => {
+                const status3Response = await fetch(`/api/runway-status?taskId=${stage3Result.taskId}`);
+                const status3Result = await status3Response.json();
+                
+                if (status3Result.status === 'succeeded') {
+                  console.log('Stage 3 completed, starting Stage 4...');
+                  
+                  // Stage 4 Extension (Final)
+                  const stage4Response = await fetch('/api/runway-extend', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      assetId: stage3Result.taskId,
+                      stage: 4,
+                      originalPrompt: `${generatedVideo.title}: ${generatedVideo.scriptPreview}`,
+                      previousVideoUrl: status3Result.videoUrl
+                    })
+                  });
+                  
+                  if (stage4Response.ok) {
+                    const stage4Result = await stage4Response.json();
+                    
+                    setVideoGeneration(prev => ({
+                      ...prev,
+                      message: 'Final extension to 34 seconds (Stage 4/4)...',
+                      progress: 90,
+                      currentStage: 4,
+                      extendingTaskId: stage4Result.taskId
+                    }));
+                    
+                    // Poll for final completion
+                    const pollFinal = async () => {
+                      const finalResponse = await fetch(`/api/runway-status?taskId=${stage4Result.taskId}`);
+                      const finalResult = await finalResponse.json();
+                      
+                      if (finalResult.status === 'succeeded') {
+                        setVideoGeneration(prev => ({
+                          ...prev,
+                          status: 'succeeded',
+                          message: '34-second professional video completed!',
+                          progress: 100,
+                          currentStage: 4,
+                          videoUrl: finalResult.videoUrl,
+                          duration: '34 seconds'
+                        }));
+                      } else if (finalResult.status === 'failed') {
+                        setVideoGeneration(prev => ({
+                          ...prev,
+                          status: 'failed',
+                          message: 'Final extension failed'
+                        }));
+                      } else {
+                        setTimeout(pollFinal, 5000);
+                      }
+                    };
+                    
+                    setTimeout(pollFinal, 5000);
+                  }
+                }
+              };
+              
+              setTimeout(pollStage3, 5000);
+            }
+          }
+        };
+        
+        setTimeout(pollStage2, 5000);
+      }
+    } catch (error) {
+      console.error('Video extension failed:', error);
+      setVideoGeneration(prev => ({
+        ...prev,
+        status: 'failed',
+        message: 'Video extension failed'
+      }));
+    } finally {
+      setIsRetrieving(false);
+    }
   };
 
   return (
@@ -207,6 +358,7 @@ export default function HomePage() {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh'
     }}>
+      {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
         <h1 style={{ 
           color: '#fff', 
@@ -225,6 +377,7 @@ export default function HomePage() {
         </p>
       </header>
 
+      {/* AI Generator Section */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -234,35 +387,29 @@ export default function HomePage() {
       }}>
         <h2 style={{ color: '#333', marginBottom: '20px' }}>AI Video Generator</h2>
         
-        {/* Script Type Selection */}
-        <div style={{ 
-          background: '#e3f2fd', 
-          border: '1px solid #90caf9', 
-          borderRadius: '5px', 
-          padding: '15px',
-          marginBottom: '20px'
-        }}>
-          <h4 style={{ color: '#1565c0', margin: '0 0 10px 0' }}>Choose Script Type:</h4>
-          <div style={{ display: 'flex', gap: '15px' }}>
+        {/* Script Mode Selection */}
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ color: '#666', marginBottom: '10px', fontSize: '16px' }}>Choose Script Mode:</h3>
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="scriptType"
-                checked={!useOwnScript}
+              <input 
+                type="radio" 
+                name="scriptMode" 
+                checked={!useOwnScript} 
                 onChange={() => setUseOwnScript(false)}
                 style={{ marginRight: '8px' }}
               />
-              <span>🤖 AI Generated Script</span>
+              <span style={{ color: '#333' }}>AI Generated Script</span>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="scriptType"
-                checked={useOwnScript}
+              <input 
+                type="radio" 
+                name="scriptMode" 
+                checked={useOwnScript} 
                 onChange={() => setUseOwnScript(true)}
                 style={{ marginRight: '8px' }}
               />
-              <span>📝 My Own Script</span>
+              <span style={{ color: '#333' }}>My Own Script</span>
             </label>
           </div>
         </div>
@@ -272,7 +419,7 @@ export default function HomePage() {
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder={useOwnScript ? "Enter video title/topic" : "Enter wealth building topic (e.g., 'Real Estate Investment Strategies')"}
+            placeholder={useOwnScript ? "Enter video title" : "Enter wealth building topic (e.g., 'Real Estate Investment Strategies')"}
             style={{
               flex: '1',
               padding: '12px',
@@ -283,7 +430,7 @@ export default function HomePage() {
             disabled={isGenerating}
           />
           <button
-            onClick={handleGenerate}
+            onClick={useOwnScript ? handleCreateVideoSetup : handleGenerate}
             disabled={isGenerating || !topic.trim()}
             style={{
               padding: '12px 24px',
@@ -299,629 +446,81 @@ export default function HomePage() {
           </button>
         </div>
 
-        {generatedVideo && (
-          <div style={{ 
-            background: '#f8f9fa', 
-            border: '1px solid #e9ecef', 
-            borderRadius: '5px', 
-            padding: '20px',
-            marginTop: '20px'
-          }}>
-            <h3 style={{ color: '#333', marginBottom: '15px' }}>
-              {useOwnScript ? 'Video Setup:' : 'Generated Content:'}
-            </h3>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Title:</strong> {generatedVideo.title}
-            </div>
-            {!useOwnScript && (
-              <>
-                <div style={{ marginBottom: '10px' }}>
-                  <strong>Description:</strong> {generatedVideo.description}
-                </div>
-                <div style={{ marginBottom: '10px' }}>
-                  <strong>Category:</strong> {generatedVideo.category}
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
-                </div>
-              </>
-            )}
-            
-            {/* Script Editing Section */}
-            <div style={{ 
-              background: useOwnScript ? '#f0f8ff' : '#fff3cd', 
-              border: `1px solid ${useOwnScript ? '#87ceeb' : '#ffeaa7'}`, 
-              borderRadius: '5px', 
-              padding: '15px',
-              marginBottom: '20px'
-            }}>
-              <h4 style={{ color: useOwnScript ? '#1e90ff' : '#856404', marginBottom: '10px' }}>
-                {useOwnScript ? '📝 Write Your Script:' : '📝 Customize Your Script:'}
-              </h4>
-              <textarea
-                value={editedScript}
-                onChange={(e) => setEditedScript(e.target.value)}
-                placeholder={useOwnScript ? "Write your own script here..." : "Edit the AI-generated script or write your own..."}
-                style={{
-                  width: '100%',
-                  minHeight: '150px',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '3px',
-                  fontSize: '14px',
-                  fontFamily: 'Arial, sans-serif',
-                  resize: 'vertical'
-                }}
-              />
-              <div style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleUpdateScript}
-                  disabled={!editedScript.trim()}
-                  style={{
-                    padding: '8px 16px',
-                    background: !editedScript.trim() ? '#ccc' : '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: !editedScript.trim() ? 'not-allowed' : 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  {useOwnScript ? 'Save Script' : 'Update Script'}
-                </button>
-                <button
-                  onClick={handleClearScript}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Clear Script
-                </button>
-                {!useOwnScript && generatedVideo.scriptPreview && (
-                  <button
-                    onClick={handleUseAIScript}
-                    style={{
-                      padding: '8px 16px',
-                      background: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Use AI Script
-                  </button>
-                )}
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: useOwnScript ? '#1e90ff' : '#856404' }}>
-                <strong>Character count:</strong> {editedScript.length} | <strong>Word count:</strong> {editedScript.split(' ').filter(word => word.trim()).length}
-                {editedScript.length > 500 && (
-                  <span style={{ color: '#dc3545', marginLeft: '10px' }}>
-                    ⚠️ Long scripts may be truncated for Instagram videos
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ color: '#0066cc', marginBottom: '10px' }}>Generate Video:</h4>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                <button 
-                  onClick={handleGenerateVideo}
-                  disabled={isRetrieving || !editedScript.trim()}
-                  style={{
-                    padding: '12px 20px',
-                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    minWidth: '160px'
-                  }}>
-                  🟢 Quick Video (6 sec)
-                  <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Eden AI • $0.50 • 2 mins</small>
-                </button>
-                <button 
-                  onClick={handleGenerateYouTubeVideo}
-                  disabled={isRetrieving || !editedScript.trim()}
-                  style={{
-                    padding: '12px 20px',
-                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    minWidth: '160px'
-                  }}>
-                  🎬 YouTube Video (2 min)
-                  <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
-                </button>
-                <button 
-                  onClick={handleGenerateInstagramVideo}
-                  disabled={isRetrieving || !editedScript.trim()}
-                  style={{
-                    padding: '12px 20px',
-                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#e1306c',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    minWidth: '160px'
-                  }}>
-                  📱 Instagram Video (30 sec)
-                  <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
-                </button>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button style={{
-                padding: '8px 16px',
-                background: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
-              }}>
-                Upload to YouTube
-              </button>
-              <button style={{
-                padding: '8px 16px',
-                background: '#e1306c',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer'
-              }}>
-                Post to Instagram
-              </button>
-            </div>
-          </div>
-        )}
-
-        {videoGeneration && (
+        {/* Script Editing Section */}
+        {(generatedVideo || useOwnScript) && (
           <div style={{ 
             background: '#f0f8ff', 
             border: '1px solid #0066cc', 
             borderRadius: '5px', 
             padding: '20px',
-            marginTop: '20px'
+            marginBottom: '20px'
           }}>
-            <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>
-              {videoGeneration.provider === 'synthesia' ? 'AI Avatar Video Generation Status:' :
-               videoGeneration.provider === 'runway' ? 'Professional Video Generation Status:' : 
-               'AI Video Generation Status:'}
-            </h3>
-            
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Provider:</strong> 
-              <span style={{ marginLeft: '8px' }}>
-                {videoGeneration.provider === 'synthesia' ? 'Synthesia (AI Avatar)' : 
-                 videoGeneration.provider === 'runway' ? 'Runway ML (Professional)' : 
-                 'Eden AI (Quick)'}
-              </span>
-            </div>
-            
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Status:</strong> 
-              <span style={{ 
-                color: videoGeneration.status === 'completed' || videoGeneration.status === 'succeeded' ? '#28a745' : 
-                      isVideoProcessing(videoGeneration.status) ? '#ffc107' : '#dc3545',
-                marginLeft: '8px',
-                fontWeight: 'bold'
-              }}>
-                {videoGeneration.status?.toUpperCase() || 'SUBMITTED'}
-              </span>
-              {videoGeneration.progress && (
-                <span style={{ marginLeft: '8px', color: '#666' }}>
-                  ({videoGeneration.progress}%)
-                </span>
-              )}
-            </div>
-            
-            <div style={{ marginBottom: '10px' }}>
-              <strong>ID:</strong> {videoGeneration.publicId || videoGeneration.videoId || videoGeneration.taskId}
-            </div>
-            
-            {videoGeneration.lastChecked && (
-              <div style={{ marginBottom: '10px' }}>
-                <strong>Last Checked:</strong> {videoGeneration.lastChecked}
-              </div>
-            )}
-            
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Message:</strong> {videoGeneration.message}
-            </div>
-
-            {isVideoProcessing(videoGeneration.status) && (
-              <button 
-                onClick={handleRetrieveVideo}
-                disabled={isRetrieving}
+            <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>Edit Script:</h3>
+            <textarea
+              value={editedScript}
+              onChange={(e) => setEditedScript(e.target.value)}
+              placeholder={useOwnScript ? "Enter your script here..." : "AI-generated script will appear here..."}
+              style={{
+                width: '100%',
+                height: '150px',
+                padding: '12px',
+                border: '2px solid #ddd',
+                borderRadius: '5px',
+                fontSize: '14px',
+                resize: 'vertical',
+                fontFamily: 'Arial, sans-serif'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={handleUpdateScript}
+                disabled={!editedScript.trim()}
                 style={{
                   padding: '8px 16px',
-                  background: isRetrieving ? '#ccc' : '#0066cc',
+                  background: editedScript.trim() ? '#28a745' : '#ccc',
                   color: 'white',
                   border: 'none',
                   borderRadius: '3px',
-                  cursor: isRetrieving ? 'not-allowed' : 'pointer',
-                  marginRight: '10px'
-                }}>
-                {isRetrieving ? 'Checking...' : 'Check Video Status'}
+                  cursor: editedScript.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '14px'
+                }}
+              >
+                Update Script
               </button>
-            )}
-
-            {videoGeneration.videoUrl && (
-              <div style={{ marginTop: '15px' }}>
-                <strong style={{ color: '#28a745' }}>✅ Video Ready!</strong>
-                <br />
-                <a 
-                  href={videoGeneration.videoUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+              <button
+                onClick={handleClearScript}
+                style={{
+                  padding: '8px 16px',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Clear Script
+              </button>
+              {!useOwnScript && (
+                <button
+                  onClick={handleUseAIScript}
+                  disabled={!generatedVideo?.scriptPreview}
                   style={{
-                    display: 'inline-block',
                     padding: '8px 16px',
-                    background: '#28a745',
+                    background: generatedVideo?.scriptPreview ? '#6c757d' : '#ccc',
                     color: 'white',
-                    textDecoration: 'none',
+                    border: 'none',
                     borderRadius: '3px',
-                    marginTop: '10px'
-                  }}>
-                  Download Video
-                </a>
-              </div>
-            )}
+                    cursor: generatedVideo?.scriptPreview ? 'pointer' : 'not-allowed',
+                    fontSize: '14px'
+                  }}
+                >
+                  Use AI Script
+                </button>
+              )}
+            </div>
           </div>
         )}
-      </div>
-
-      <div style={{ 
-        background: 'rgba(255,255,255,0.95)', 
-        borderRadius: '10px', 
-        padding: '30px',
-        boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
-      }}>
-        <h2 style={{ color: '#333', marginBottom: '20px' }}>Triple Platform Revenue Dashboard</h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '20px' 
-        }}>
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px',
-            border: '2px solid #667eea'
-          }}>
-            <h3 style={{ color: '#667eea', margin: '0 0 10px 0' }}>WealthyMogul.com</h3>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>$0.00</div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>AdSense Revenue</div>
-          </div>
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px',
-            border: '2px solid #dc3545'
-          }}>
-            <h3 style={{ color: '#dc3545', margin: '0 0 10px 0' }}>YouTube</h3>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>$0.00</div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Ad Revenue + Sponsorships</div>
-          </div>
-          <div style={{ 
-            background: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px',
-            border: '2px solid #e1306c'
-          }}>
-            <h3 style={{ color: '#e1306c', margin: '0 0 10px 0' }}>Instagram</h3>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>$0.00</div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Reels + Brand Partnerships</div>
-          </div>
-        </div>
-        <div style={{ 
-          marginTop: '30px', 
-          padding: '20px', 
-          background: '#e8f5e8', 
-          borderRadius: '8px',
-          border: '2px solid #28a745'
-        }}>
-          <h3 style={{ color: '#28a745', margin: '0 0 10px 0' }}>Total Revenue</h3>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#28a745' }}>$0.00</div>
-          <div style={{ color: '#666' }}>Combined earnings from all platforms</div>
-        </div>
-      </div>
-
-      <div style={{ 
-        marginTop: '40px',
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '20px' 
-      }}>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>🤖 AI Content Generation</h3>
-          <p style={{ color: '#666' }}>Generate wealth-building video scripts, titles, and descriptions instantly</p>
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>📱 Multi-Platform Publishing</h3>
-          <p style={{ color: '#666' }}>Automatically distribute content to YouTube and Instagram</p>
-        </div>
-        <div style={{ 
-          background: 'rgba(255,255,255,0.95)', 
-          padding: '20px', 
-          borderRadius: '8px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ color: '#333' }}>💰 Revenue Optimization</h3>
-          <p style={{ color: '#666' }}>Triple revenue streams with AdSense, YouTube, and Instagram monetization</p>
-        </div>
-      </div>
-    </div>
-  );
-}import { useState } from 'react';
-
-export default function HomePage() {
-  const [topic, setTopic] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedVideo, setGeneratedVideo] = useState(null);
-  const [editedScript, setEditedScript] = useState('');
-  const [videoGeneration, setVideoGeneration] = useState(null);
-  const [isRetrieving, setIsRetrieving] = useState(false);
-
-  const handleGenerate = async () => {
-    if (!topic.trim()) return;
-    
-    setIsGenerating(true);
-    setVideoGeneration(null);
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ topic }),
-      });
-      
-      const result = await response.json();
-      setGeneratedVideo(result);
-      setEditedScript(result.scriptPreview || ''); // Initialize edited script
-    } catch (error) {
-      console.error('Generation failed:', error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleUpdateScript = () => {
-    if (generatedVideo && editedScript.trim()) {
-      setGeneratedVideo(prev => ({
-        ...prev,
-        scriptPreview: editedScript
-      }));
-    }
-  };
-
-  const handleGenerateVideo = async () => {
-    if (!generatedVideo) return;
-    
-    setIsRetrieving(true);
-    try {
-      const response = await fetch('/api/generate-video', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          title: generatedVideo.title,
-          script: editedScript || generatedVideo.scriptPreview
-        }),
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        setVideoGeneration(result);
-      } else {
-        console.error('Video generation failed:', result.error);
-      }
-    } catch (error) {
-      console.error('Video generation failed:', error);
-    } finally {
-      setIsRetrieving(false);
-    }
-  };
-
-  const handleGenerateYouTubeVideo = async () => {
-    if (!generatedVideo) return;
-    
-    setIsRetrieving(true);
-    try {
-      const response = await fetch('/api/generate-video-synthesia', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          title: generatedVideo.title,
-          script: editedScript || generatedVideo.scriptPreview,
-          duration: 120,
-          platform: 'youtube'
-        }),
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        setVideoGeneration(result);
-      } else {
-        console.error('YouTube video generation failed:', result.error);
-      }
-    } catch (error) {
-      console.error('YouTube video generation failed:', error);
-    } finally {
-      setIsRetrieving(false);
-    }
-  };
-
-  const handleGenerateInstagramVideo = async () => {
-    if (!generatedVideo) return;
-    
-    setIsRetrieving(true);
-    try {
-      const response = await fetch('/api/generate-video-synthesia', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          title: generatedVideo.title,
-          script: editedScript || generatedVideo.scriptPreview,
-          duration: 30,
-          platform: 'instagram'
-        }),
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        setVideoGeneration(result);
-      } else {
-        console.error('Instagram video generation failed:', result.error);
-      }
-    } catch (error) {
-      console.error('Instagram video generation failed:', error);
-    } finally {
-      setIsRetrieving(false);
-    }
-  };
-
-  const handleRetrieveVideo = async () => {
-    if (!videoGeneration?.publicId && !videoGeneration?.videoId && !videoGeneration?.taskId) return;
-    
-    setIsRetrieving(true);
-    try {
-      let response;
-      
-      if (videoGeneration.provider === 'synthesia') {
-        response = await fetch(`/api/synthesia-status?videoId=${videoGeneration.videoId}`);
-      } else if (videoGeneration.provider === 'runway') {
-        response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
-      } else {
-        response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setVideoGeneration(prev => ({
-          ...prev,
-          ...result,
-          lastChecked: new Date().toLocaleTimeString()
-        }));
-      }
-    } catch (error) {
-      console.error('Video retrieval failed:', error);
-    } finally {
-      setIsRetrieving(false);
-    }
-  };
-
-  const isVideoProcessing = (status) => {
-    const processingStates = [
-      'processing', 'pending', 'running',
-      'PROCESSING', 'PENDING', 'RUNNING'
-    ];
-    return processingStates.includes(status);
-  };
-
-  return (
-    <div style={{ 
-      fontFamily: 'Arial, sans-serif', 
-      maxWidth: '1200px', 
-      margin: '0 auto', 
-      padding: '20px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      minHeight: '100vh'
-    }}>
-      <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <h1 style={{ 
-          color: '#fff', 
-          fontSize: '3rem', 
-          margin: '0 0 10px 0',
-          textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-        }}>
-          WealthyMogul.com
-        </h1>
-        <p style={{ 
-          color: '#f0f0f0', 
-          fontSize: '1.2rem',
-          margin: '0'
-        }}>
-          AI-Powered Wealth Building Content Platform
-        </p>
-      </header>
-
-      <div style={{ 
-        background: 'rgba(255,255,255,0.95)', 
-        borderRadius: '10px', 
-        padding: '30px',
-        marginBottom: '30px',
-        boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
-      }}>
-        <h2 style={{ color: '#333', marginBottom: '20px' }}>AI Video Generator</h2>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="Enter wealth building topic (e.g., 'Real Estate Investment Strategies')"
-            style={{
-              flex: '1',
-              padding: '12px',
-              border: '2px solid #ddd',
-              borderRadius: '5px',
-              fontSize: '16px'
-            }}
-            disabled={isGenerating}
-          />
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || !topic.trim()}
-            style={{
-              padding: '12px 24px',
-              background: isGenerating ? '#ccc' : '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '16px',
-              cursor: isGenerating ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {isGenerating ? 'Generating...' : 'Generate Content'}
-          </button>
-        </div>
 
         {generatedVideo && (
           <div style={{ 
@@ -943,65 +542,6 @@ export default function HomePage() {
             </div>
             <div style={{ marginBottom: '15px' }}>
               <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
-            </div>
-            
-            {/* Script Editing Section */}
-            <div style={{ 
-              background: '#fff3cd', 
-              border: '1px solid #ffeaa7', 
-              borderRadius: '5px', 
-              padding: '15px',
-              marginBottom: '20px'
-            }}>
-              <h4 style={{ color: '#856404', marginBottom: '10px' }}>📝 Customize Your Script:</h4>
-              <textarea
-                value={editedScript}
-                onChange={(e) => setEditedScript(e.target.value)}
-                placeholder="Edit your script here..."
-                style={{
-                  width: '100%',
-                  minHeight: '120px',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '3px',
-                  fontSize: '14px',
-                  fontFamily: 'Arial, sans-serif',
-                  resize: 'vertical'
-                }}
-              />
-              <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={handleUpdateScript}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Update Script
-                </button>
-                <button
-                  onClick={() => setEditedScript(generatedVideo.scriptPreview)}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Reset to Original
-                </button>
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: '#856404' }}>
-                <strong>Character count:</strong> {editedScript.length} | <strong>Word count:</strong> {editedScript.split(' ').filter(word => word.trim()).length}
-              </div>
             </div>
             
             <div style={{ marginBottom: '20px' }}>
@@ -1062,6 +602,11 @@ export default function HomePage() {
                   <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
                 </button>
               </div>
+              {!editedScript.trim() && (
+                <p style={{ color: '#dc3545', fontSize: '14px', margin: '10px 0' }}>
+                  ⚠️ Please enter a script to generate videos
+                </p>
+              )}
             </div>
             
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -1116,7 +661,7 @@ export default function HomePage() {
               <strong>Status:</strong> 
               <span style={{ 
                 color: videoGeneration.status === 'completed' || videoGeneration.status === 'succeeded' ? '#28a745' : 
-                      isVideoProcessing(videoGeneration.status) ? '#ffc107' : '#dc3545',
+                      videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' ? '#ffc107' : '#dc3545',
                 marginLeft: '8px',
                 fontWeight: 'bold'
               }}>
@@ -1143,7 +688,7 @@ export default function HomePage() {
               <strong>Message:</strong> {videoGeneration.message}
             </div>
 
-            {isVideoProcessing(videoGeneration.status) && (
+            {(videoGeneration.status === 'processing' || videoGeneration.status === 'pending' || videoGeneration.status === 'running' || videoGeneration.status === 'PENDING' || videoGeneration.status === 'PROCESSING' || videoGeneration.status === 'RUNNING') && (
               <button 
                 onClick={handleRetrieveVideo}
                 disabled={isRetrieving}
@@ -1164,27 +709,46 @@ export default function HomePage() {
               <div style={{ marginTop: '15px' }}>
                 <strong style={{ color: '#28a745' }}>✅ Video Ready!</strong>
                 <br />
-                <a 
-                  href={videoGeneration.videoUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-block',
-                    padding: '8px 16px',
-                    background: '#28a745',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '3px',
-                    marginTop: '10px'
-                  }}>
-                  Download Video
-                </a>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <a 
+                    href={videoGeneration.videoUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '8px 16px',
+                      background: '#28a745',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '3px'
+                    }}>
+                    Download Video ({videoGeneration.duration || '10 seconds'})
+                  </a>
+                  
+                  {videoGeneration.provider === 'runway' && videoGeneration.currentStage === 4 && !videoGeneration.duration?.includes('34') && (
+                    <button 
+                      onClick={handleExtendVideo}
+                      disabled={isRetrieving}
+                      style={{
+                        padding: '8px 16px',
+                        background: isRetrieving ? '#ccc' : '#8a2be2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: isRetrieving ? 'not-allowed' : 'pointer'
+                      }}>
+                      {isRetrieving ? 'Extending...' : 'Extend to 34 seconds'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
 
+      {/* Revenue Dashboard */}
       <div style={{ 
         background: 'rgba(255,255,255,0.95)', 
         borderRadius: '10px', 
@@ -1241,6 +805,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Features Grid */}
       <div style={{ 
         marginTop: '40px',
         display: 'grid', 
@@ -1278,3 +843,4 @@ export default function HomePage() {
     </div>
   );
 }
+
