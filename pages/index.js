@@ -8,6 +8,9 @@ export default function HomePage() {
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [editedScript, setEditedScript] = useState('');
   const [useOwnScript, setUseOwnScript] = useState(false);
+  const [youtubeLength, setYoutubeLength] = useState(120); // Default 2 minutes
+  const [instagramLength, setInstagramLength] = useState(30); // Default 30 seconds
+  const [selectedAvatar, setSelectedAvatar] = useState('sonia_costume1_cameraA'); // Default avatar
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -115,8 +118,9 @@ export default function HomePage() {
         body: JSON.stringify({ 
           title: generatedVideo.title,
           script: editedScript,
-          duration: 120,
-          platform: 'youtube'
+          duration: youtubeLength,
+          platform: 'youtube',
+          avatar: selectedAvatar
         }),
       });
       
@@ -145,9 +149,10 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: editedScript.substring(0, 200), // Shorter script for Instagram
-          duration: 30,
-          platform: 'instagram'
+          script: editedScript.substring(0, instagramLength === 30 ? 200 : 400), // Adjust script length based on duration
+          duration: instagramLength,
+          platform: 'instagram',
+          avatar: selectedAvatar
         }),
       });
       
@@ -545,7 +550,123 @@ export default function HomePage() {
             </div>
             
             <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ color: '#0066cc', marginBottom: '10px' }}>Choose Video Type:</h4>
+              <h4 style={{ color: '#0066cc', marginBottom: '15px' }}>Choose Video Type & Duration:</h4>
+              
+              {/* Avatar Selection */}
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+                  Choose Your AI Avatar:
+                </label>
+                <select 
+                  value={selectedAvatar} 
+                  onChange={(e) => setSelectedAvatar(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    border: '2px solid #ddd',
+                    borderRadius: '5px',
+                    fontSize: '14px',
+                    marginRight: '10px',
+                    background: '#fff',
+                    minWidth: '250px'
+                  }}
+                >
+                  <optgroup label="👩 Female Avatars">
+                    <option value="sonia_costume1_cameraA">Sonia - Business Professional</option>
+                    <option value="anna_costume1_cameraA">Anna - Executive Style</option>
+                    <option value="emma_costume1_cameraA">Emma - Modern Professional</option>
+                    <option value="lisa_costume1_cameraA">Lisa - Corporate Presenter</option>
+                    <option value="sarah_costume1_cameraA">Sarah - Financial Expert</option>
+                  </optgroup>
+                  <optgroup label="👨 Male Avatars">
+                    <option value="matthew_costume1_cameraA">Matthew - Business Leader</option>
+                    <option value="mike_costume1_cameraA">Mike - Professional Advisor</option>
+                    <option value="david_costume1_cameraA">David - Investment Expert</option>
+                    <option value="james_costume1_cameraA">James - Real Estate Pro</option>
+                    <option value="alex_costume1_cameraA">Alex - Financial Consultant</option>
+                  </optgroup>
+                  <optgroup label="🌍 Diverse Avatars">
+                    <option value="priya_costume1_cameraA">Priya - International Business</option>
+                    <option value="carlos_costume1_cameraA">Carlos - Global Markets</option>
+                    <option value="nina_costume1_cameraA">Nina - Tech Professional</option>
+                    <option value="ryan_costume1_cameraA">Ryan - Investment Strategist</option>
+                  </optgroup>
+                </select>
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                  💡 Preview: <strong>{selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1)}</strong> will be your video presenter
+                  <br />
+                  <span style={{ fontSize: '11px', color: '#888' }}>
+                    {selectedAvatar.includes('sonia') ? '👩 Professional businesswoman, confident and engaging' :
+                     selectedAvatar.includes('anna') ? '👩 Executive style, authoritative and polished' :
+                     selectedAvatar.includes('emma') ? '👩 Modern professional, approachable and friendly' :
+                     selectedAvatar.includes('lisa') ? '👩 Corporate presenter, clear and articulate' :
+                     selectedAvatar.includes('sarah') ? '👩 Financial expert, knowledgeable and trustworthy' :
+                     selectedAvatar.includes('matthew') ? '👨 Business leader, commanding and professional' :
+                     selectedAvatar.includes('mike') ? '👨 Professional advisor, experienced and reliable' :
+                     selectedAvatar.includes('david') ? '👨 Investment expert, analytical and precise' :
+                     selectedAvatar.includes('james') ? '👨 Real estate professional, industry specialist' :
+                     selectedAvatar.includes('alex') ? '👨 Financial consultant, strategic and insightful' :
+                     selectedAvatar.includes('priya') ? '👩 International business expert, global perspective' :
+                     selectedAvatar.includes('carlos') ? '👨 Global markets specialist, multicultural appeal' :
+                     selectedAvatar.includes('nina') ? '👩 Tech professional, innovative and forward-thinking' :
+                     selectedAvatar.includes('ryan') ? '👨 Investment strategist, analytical and results-driven' :
+                     'Professional AI presenter'}
+                  </span>
+                </div>
+              </div>
+
+              {/* YouTube Duration Selection */}
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+                  YouTube Video Duration:
+                </label>
+                <select 
+                  value={youtubeLength} 
+                  onChange={(e) => setYoutubeLength(parseInt(e.target.value))}
+                  style={{
+                    padding: '8px 12px',
+                    border: '2px solid #ddd',
+                    borderRadius: '5px',
+                    fontSize: '14px',
+                    marginRight: '10px',
+                    background: '#fff'
+                  }}
+                >
+                  <option value={120}>2 Minutes</option>
+                  <option value={180}>3 Minutes</option>
+                  <option value={300}>5 Minutes</option>
+                </select>
+                <span style={{ color: '#666', fontSize: '13px' }}>
+                  {youtubeLength === 120 ? 'Perfect for quick tips' : 
+                   youtubeLength === 180 ? 'Great for detailed explanations' : 
+                   'Comprehensive deep-dive content'}
+                </span>
+              </div>
+
+              {/* Instagram Duration Selection */}
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+                  Instagram Video Duration:
+                </label>
+                <select 
+                  value={instagramLength} 
+                  onChange={(e) => setInstagramLength(parseInt(e.target.value))}
+                  style={{
+                    padding: '8px 12px',
+                    border: '2px solid #ddd',
+                    borderRadius: '5px',
+                    fontSize: '14px',
+                    marginRight: '10px',
+                    background: '#fff'
+                  }}
+                >
+                  <option value={30}>30 Seconds</option>
+                  <option value={60}>1 Minute</option>
+                </select>
+                <span style={{ color: '#666', fontSize: '13px' }}>
+                  {instagramLength === 30 ? 'Quick engaging highlights' : 'Extended Instagram content'}
+                </span>
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button 
                   onClick={handleGenerateVideo}
@@ -579,7 +700,7 @@ export default function HomePage() {
                     fontWeight: 'bold',
                     minWidth: '160px'
                   }}>
-                  🎬 YouTube Video (2 min)
+                  🎬 YouTube Video ({youtubeLength/60}min)
                   <br />
                   <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
                 </button>
@@ -597,7 +718,7 @@ export default function HomePage() {
                     fontWeight: 'bold',
                     minWidth: '160px'
                   }}>
-                  📱 Instagram Video (30 sec)
+                  📱 Instagram Video ({instagramLength}sec)
                   <br />
                   <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
                 </button>
@@ -843,4 +964,3 @@ export default function HomePage() {
     </div>
   );
 }
-
