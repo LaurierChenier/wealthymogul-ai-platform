@@ -42,8 +42,8 @@ export default function HomePage() {
     const videoSetup = {
       title: topic,
       description: 'Custom video with user-provided script',
-      category: 'Wealth Building',
-      tags: ['wealth', 'finance', 'custom'],
+      category: 'Real Estate Education',
+      tags: ['real estate', 'education', 'custom'],
       scriptPreview: editedScript
     };
     
@@ -177,9 +177,8 @@ export default function HomePage() {
       
       if (videoGeneration.provider === 'heygen') {
         response = await fetch(`/api/heygen-status?videoId=${videoGeneration.videoId}`);
-      } else if (videoGeneration.provider === 'synthesia') {
-        response = await fetch(`/api/synthesia-status?videoId=${videoGeneration.videoId}`);
       } else {
+        // Eden AI fallback
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -558,8 +557,7 @@ export default function HomePage() {
             marginTop: '20px'
           }}>
             <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>
-              {videoGeneration.provider === 'heygen' ? 'HeyGen AI Avatar Video Status:' :
-               videoGeneration.provider === 'synthesia' ? 'Synthesia AI Avatar Video Status:' : 
+              {videoGeneration.provider === 'heygen' ? 'HeyGen AI Avatar Video Status:' : 
                'AI Video Generation Status:'}
             </h3>
             
@@ -567,7 +565,6 @@ export default function HomePage() {
               <strong>Provider:</strong> 
               <span style={{ marginLeft: '8px' }}>
                 {videoGeneration.provider === 'heygen' ? 'HeyGen (AI Avatar)' : 
-                 videoGeneration.provider === 'synthesia' ? 'Synthesia (AI Avatar)' : 
                  'Eden AI (Quick)'}
               </span>
             </div>
