@@ -1,6 +1,7 @@
-// Enhanced Synthesia AI Avatar Video Generation API
+// Enhanced Synthesia AI Avatar Video Generation API with Debug
 export default async function handler(req, res) {
   console.log('API called with method:', req.method);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
   
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -9,8 +10,13 @@ export default async function handler(req, res) {
   try {
     const { title, script, duration = 120, platform = 'youtube', avatar = 'sonia_costume1_cameraA' } = req.body;
     
+    console.log('Extracted values:', { title, script: script?.substring(0, 100), duration, platform, avatar });
+    
     if (!title || !script) {
-      return res.status(400).json({ error: 'Title and script are required' });
+      return res.status(400).json({ 
+        error: 'Title and script are required',
+        debug: { title: !!title, script: !!script, titleValue: title, scriptLength: script?.length }
+      });
     }
 
     // Get API key from environment
@@ -19,15 +25,6 @@ export default async function handler(req, res) {
     if (!apiKey) {
       return res.status(500).json({ error: 'Synthesia API key not configured' });
     }
-
-    // Choose avatar and voice based on platform
-    const avatarConfig = platform === 'youtube' ? {
-      avatar: avatar, // Professional business avatar
-      voice: 'en-US-JennyNeural' // Clear female voice for education
-    } : {
-      avatar: avatar, // Same avatar for consistency
-      voice: 'en-US-JennyNeural' // Same voice for brand consistency
-    };
 
     // Prepare video configuration with correct Synthesia v2 API structure
     const videoConfig = {
@@ -46,8 +43,7 @@ export default async function handler(req, res) {
       title,
       duration,
       platform,
-      avatar: avatarConfig.avatar,
-      voice: avatarConfig.voice,
+      avatar,
       scriptLength: script.length
     });
 
@@ -83,7 +79,7 @@ export default async function handler(req, res) {
       platform: platform,
       duration: duration,
       avatar: avatar,
-      voice: avatarConfig.voice,
+      voice: 'en-US-JennyNeural',
       estimatedTime: '3-5 minutes'
     });
 
