@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'HeyGen API key not configured' });
     }
 
-    // Updated avatar mapping with correct gender assignments
+    // Avatar mapping with correct gender assignments - using stock avatars until custom ones are created
     const avatarMapping = {
       // Custom Wealthy Mogul avatars - mapped to working stock avatars with correct genders
       'daisy_wealth_mogul': 'Angela-inblackskirt-20220820',    // Female
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       'male_casual_2': 'Josh_20230826_135716_image'
     };
 
-    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820'; // Default to working stock avatar
+    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820';
     
     // Voice selection based on avatar gender
     let voiceId = '119caed25533477ba63822d5d1552d25'; // Default female voice
@@ -52,11 +52,9 @@ export default async function handler(req, res) {
     // Process script based on platform and duration
     let processedScript = script;
     if (platform === 'instagram') {
-      // Instagram has shorter duration limits
       const maxChars = duration === 30 ? 200 : 400;
       processedScript = script.substring(0, maxChars);
     } else if (platform === 'youtube') {
-      // YouTube can handle longer scripts
       const maxChars = duration === 120 ? 800 : duration === 180 ? 1200 : 2000;
       processedScript = script.substring(0, maxChars);
     }
@@ -125,7 +123,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Success response
     return res.status(200).json({
       success: true,
       videoId: responseData.data.video_id,
