@@ -1,4 +1,4 @@
-// Enhanced Synthesia AI Avatar Video Generation API with Debug
+// Enhanced Synthesia AI Avatar Video Generation API with YouTube Debug Fixes
 export default async function handler(req, res) {
   console.log('API called with method:', req.method);
   console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -26,13 +26,71 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Synthesia API key not configured' });
     }
 
+    // Platform-specific script processing and validation
+    let processedScript = script;
+    let selectedAvatar = avatar;
+    
+    if (platform === 'youtube') {
+      // YouTube-specific fixes
+      
+      // Fix 1: Script length validation based on duration
+      const maxScriptLength = duration <= 120 ? 400 : duration <= 180 ? 600 : 800;
+      processedScript = script.substring(0, maxScriptLength);
+      
+      // Fix 2: Duration validation (Synthesia max 5 minutes per scene)
+      if (duration > 300) {
+        return res.status(400).json({ 
+          error: 'YouTube videos cannot exceed 5 minutes per scene',
+          debug: { requestedDuration: duration, maxAllowed: 300 }
+        });
+      }
+      
+      // Fix 3: Avatar compatibility for longer content
+      // Use more flexible avatars for YouTube content
+      const youtubeCompatibleAvatars = [
+        'sonia_costume1_cameraA',
+        'anna_costume1_cameraA', 
+        'matthew_costume1_cameraA',
+        'mike_costume1_cameraA'
+      ];
+      
+      if (!youtubeCompatibleAvatars.includes(avatar)) {
+        selectedAvatar = 'sonia_costume1_cameraA'; // Fallback to known working avatar
+        console.log('Avatar fallback applied for YouTube:', selectedAvatar);
+      }
+      
+      // Fix 4: Content preprocessing for YouTube
+      processedScript = processedScript
+        .replace(/\b(guaranteed|promise|definitely will)\b/gi, 'may potentially')
+        .replace(/\b(get rich quick|instant wealth)\b/gi, 'build wealth over time')
+        .replace(/\b(medical advice|legal advice)\b/gi, 'general information');
+      
+      console.log('YouTube processing applied:', {
+        originalLength: script.length,
+        processedLength: processedScript.length,
+        duration,
+        avatarUsed: selectedAvatar
+      });
+      
+    } else if (platform === 'instagram') {
+      // Instagram-specific processing (already working)
+      const maxLength = duration === 30 ? 200 : 400;
+      processedScript = script.substring(0, maxLength);
+      
+      console.log('Instagram processing applied:', {
+        originalLength: script.length,
+        processedLength: processedScript.length,
+        duration
+      });
+    }
+
     // Prepare video configuration with correct Synthesia v2 API structure
     const videoConfig = {
       title: title,
       input: [
         {
-          scriptText: script,
-          avatar: avatar,
+          scriptText: processedScript,
+          avatar: selectedAvatar,
           background: 'white'
         }
       ],
@@ -43,8 +101,9 @@ export default async function handler(req, res) {
       title,
       duration,
       platform,
-      avatar,
-      scriptLength: script.length
+      avatar: selectedAvatar,
+      scriptLength: processedScript.length,
+      configPreview: JSON.stringify(videoConfig, null, 2).substring(0, 200)
     });
 
     // Create video via Synthesia API
@@ -62,12 +121,19 @@ export default async function handler(req, res) {
       console.error('Synthesia API error:', response.status, errorText);
       return res.status(response.status).json({ 
         error: 'Failed to create video',
-        details: errorText 
+        details: errorText,
+        debug: {
+          platform,
+          duration,
+          avatar: selectedAvatar,
+          scriptLength: processedScript.length,
+          httpStatus: response.status
+        }
       });
     }
 
     const result = await response.json();
-    console.log('Synthesia video created:', result);
+    console.log('Synthesia video created successfully:', result);
 
     // Return the video ID for status checking
     return res.status(200).json({
@@ -78,9 +144,15 @@ export default async function handler(req, res) {
       provider: 'synthesia',
       platform: platform,
       duration: duration,
-      avatar: avatar,
+      avatar: selectedAvatar,
       voice: 'en-US-JennyNeural',
-      estimatedTime: '3-5 minutes'
+      estimatedTime: '3-5 minutes',
+      debug: {
+        originalScriptLength: script.length,
+        processedScriptLength: processedScript.length,
+        avatarUsed: selectedAvatar,
+        platformProcessing: platform
+      }
     });
 
   } catch (error) {
@@ -88,7 +160,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ 
       error: 'Failed to generate AI avatar video',
       details: error.message,
-      errorType: error.constructor.name
+      errorType: error.constructor.name,
+      debug: {
+        platform: req.body?.platform,
+        duration: req.body?.duration,
+        avatar: req.body?.avatar,
+        scriptLength: req.body?.script?.length
+      }
     });
   }
 }
