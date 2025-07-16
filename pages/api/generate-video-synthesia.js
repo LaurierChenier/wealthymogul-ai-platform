@@ -1,66 +1,97 @@
-// Synthesia AI Avatar Video Generation API
+// Synthesia Video Status Check API
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { title, script, duration = 120, platform = 'youtube' } = req.body;
+    const { videoId } = req.query;
     
-    if (!title || !script) {
-      return res.status(400).json({ error: 'Title and script are required' });
+    if (!videoId) {
+      return res.status(400).json({ error: 'Video ID is required' });
     }
 
-    const apiKey = process.env.SYNTHESIA_API_KEY;
+    // Get API key from environment or use provided key
+    const apiKey = process.env.SYNTHESIA_API_KEY || 'd089029706b0a8294a9697a72a7427da';
+    
     if (!apiKey) {
       return res.status(500).json({ error: 'Synthesia API key not configured' });
     }
 
-    // Minimal working configuration
-    const videoConfig = {
-      input_text: script,
-      avatar: 'anna_costume1_cameraA'
-    };
+    console.log('Checking Synthesia video status for ID:', videoId);
 
-    console.log('Creating Synthesia video with config:', videoConfig);
-
-    // Create video via Synthesia API
-    const response = await fetch('https://api.synthesia.io/v2/videos', {
-      method: 'POST',
+    // Check video status via Synthesia API
+    const response = await fetch(`https://api.synthesia.io/v2/videos/${videoId}`, {
+      method: 'GET',
       headers: {
         'Authorization': `${apiKey}`,
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(videoConfig)
+      }
     });
 
-    const responseText = await response.text();
-    console.log('Synthesia response:', response.status, responseText);
-
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Synthesia status check error:', response.status, errorText);
       return res.status(response.status).json({ 
-        error: 'Failed to create video',
-        details: responseText 
+        error: 'Failed to check video status',
+        details: errorText 
       });
     }
 
-    const result = JSON.parse(responseText);
+    const result = await response.json();
+    console.log('Synthesia video status:', result);
+
+    // Map Synthesia status to our format
+    let status = 'pending';
+    let message = 'Processing AI avatar video...';
+    let videoUrl = null;
+    let progress = 0;
+
+    switch (result.status) {
+      case 'complete':
+        status = 'succeeded';
+        message = 'AI avatar video generated successfully!';
+        videoUrl = result.download;
+        progress = 100;
+        break;
+      case 'in_progress':
+        status = 'processing';
+        message = 'Generating AI avatar video... This may take 3-5 minutes';
+        progress = 50;
+        break;
+      case 'failed':
+        status = 'failed';
+        message = 'AI avatar video generation failed';
+        progress = 0;
+        break;
+      default:
+        status = 'pending';
+        message = 'AI avatar video queued for processing';
+        progress = 10;
+    }
 
     return res.status(200).json({
       success: true,
-      videoId: result.id,
-      status: 'pending',
-      message: `${platform === 'youtube' ? '2-minute' : '30-second'} AI avatar video generation started`,
+      status: status,
+      videoUrl: videoUrl,
+      message: message,
       provider: 'synthesia',
-      platform: platform,
-      estimatedTime: '3-5 minutes'
+      videoId: videoId,
+      progress: progress,
+      avatar: result.avatar || 'sonia_costume1_cameraA',
+      voice: result.voice || 'en-US-JennyNeural',
+      duration: result.duration || 'Unknown',
+      createdAt: result.createdAt,
+      lastUpdated: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Error in Synthesia video generation:', error);
+    console.error('Error checking Synthesia video status:', error);
     return res.status(500).json({ 
-      error: 'Failed to generate AI avatar video',
-      details: error.message
+      error: 'Failed to check video status',
+      details: error.message,
+      errorType: error.constructor.name
     });
   }
 }
+
