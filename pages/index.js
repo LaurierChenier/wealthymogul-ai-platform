@@ -4,6 +4,7 @@ export default function HomePage() {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
+  const [editedScript, setEditedScript] = useState('');
   const [videoGeneration, setVideoGeneration] = useState(null);
   const [isRetrieving, setIsRetrieving] = useState(false);
 
@@ -23,10 +24,20 @@ export default function HomePage() {
       
       const result = await response.json();
       setGeneratedVideo(result);
+      setEditedScript(result.scriptPreview || ''); // Initialize edited script
     } catch (error) {
       console.error('Generation failed:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleUpdateScript = () => {
+    if (generatedVideo && editedScript.trim()) {
+      setGeneratedVideo(prev => ({
+        ...prev,
+        scriptPreview: editedScript
+      }));
     }
   };
 
@@ -42,7 +53,7 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: generatedVideo.scriptPreview 
+          script: editedScript || generatedVideo.scriptPreview
         }),
       });
       
@@ -71,7 +82,7 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: generatedVideo.scriptPreview,
+          script: editedScript || generatedVideo.scriptPreview,
           duration: 120,
           platform: 'youtube'
         }),
@@ -102,7 +113,7 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: generatedVideo.scriptPreview.substring(0, 200), // Shorter script for Instagram
+          script: editedScript || generatedVideo.scriptPreview,
           duration: 30,
           platform: 'instagram'
         }),
@@ -129,13 +140,10 @@ export default function HomePage() {
       let response;
       
       if (videoGeneration.provider === 'synthesia') {
-        // Use Synthesia status endpoint
         response = await fetch(`/api/synthesia-status?videoId=${videoGeneration.videoId}`);
       } else if (videoGeneration.provider === 'runway') {
-        // Use Runway status endpoint
         response = await fetch(`/api/runway-status?taskId=${videoGeneration.taskId}`);
       } else {
-        // Use Eden AI status endpoint
         response = await fetch(`/api/retrieve-video?publicId=${videoGeneration.publicId}`);
       }
       
@@ -226,7 +234,7 @@ export default function HomePage() {
               cursor: isGenerating ? 'not-allowed' : 'pointer'
             }}
           >
-            {isGenerating ? 'Generating...' : 'Generate Video'}
+            {isGenerating ? 'Generating...' : 'Generate Content'}
           </button>
         </div>
 
@@ -252,19 +260,78 @@ export default function HomePage() {
               <strong>Tags:</strong> {generatedVideo.tags ? generatedVideo.tags.join(', ') : 'N/A'}
             </div>
             
+            {/* Script Editing Section */}
+            <div style={{ 
+              background: '#fff3cd', 
+              border: '1px solid #ffeaa7', 
+              borderRadius: '5px', 
+              padding: '15px',
+              marginBottom: '20px'
+            }}>
+              <h4 style={{ color: '#856404', marginBottom: '10px' }}>📝 Customize Your Script:</h4>
+              <textarea
+                value={editedScript}
+                onChange={(e) => setEditedScript(e.target.value)}
+                placeholder="Edit your script here..."
+                style={{
+                  width: '100%',
+                  minHeight: '120px',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px',
+                  fontFamily: 'Arial, sans-serif',
+                  resize: 'vertical'
+                }}
+              />
+              <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handleUpdateScript}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Update Script
+                </button>
+                <button
+                  onClick={() => setEditedScript(generatedVideo.scriptPreview)}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Reset to Original
+                </button>
+              </div>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#856404' }}>
+                <strong>Character count:</strong> {editedScript.length} | <strong>Word count:</strong> {editedScript.split(' ').filter(word => word.trim()).length}
+              </div>
+            </div>
+            
             <div style={{ marginBottom: '20px' }}>
               <h4 style={{ color: '#0066cc', marginBottom: '10px' }}>Choose Video Type:</h4>
               <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button 
                   onClick={handleGenerateVideo}
-                  disabled={isRetrieving}
+                  disabled={isRetrieving || !editedScript.trim()}
                   style={{
                     padding: '12px 20px',
-                    background: isRetrieving ? '#ccc' : '#28a745',
+                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: isRetrieving ? 'not-allowed' : 'pointer',
+                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 'bold',
                     minWidth: '160px'
@@ -275,14 +342,14 @@ export default function HomePage() {
                 </button>
                 <button 
                   onClick={handleGenerateYouTubeVideo}
-                  disabled={isRetrieving}
+                  disabled={isRetrieving || !editedScript.trim()}
                   style={{
                     padding: '12px 20px',
-                    background: isRetrieving ? '#ccc' : '#dc3545',
+                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#dc3545',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: isRetrieving ? 'not-allowed' : 'pointer',
+                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 'bold',
                     minWidth: '160px'
@@ -293,14 +360,14 @@ export default function HomePage() {
                 </button>
                 <button 
                   onClick={handleGenerateInstagramVideo}
-                  disabled={isRetrieving}
+                  disabled={isRetrieving || !editedScript.trim()}
                   style={{
                     padding: '12px 20px',
-                    background: isRetrieving ? '#ccc' : '#e1306c',
+                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#e1306c',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: isRetrieving ? 'not-allowed' : 'pointer',
+                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 'bold',
                     minWidth: '160px'
