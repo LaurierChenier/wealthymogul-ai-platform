@@ -1,8 +1,11 @@
-// HeyGen API with Mason, Laurier, and Daisy custom avatars
 export default async function handler(req, res) {
-  console.log('API called with method:', req.method);
-  console.log('Request body:', req.body);
-  
+  // Debug logging
+  console.log('🔍 HeyGen API Request:', {
+    method: req.method,
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -15,49 +18,49 @@ export default async function handler(req, res) {
     }
 
     const apiKey = process.env.HEYGEN_API_KEY;
-    console.log('API key exists:', !!apiKey);
-    
     if (!apiKey) {
       return res.status(500).json({ error: 'HeyGen API key not configured' });
     }
 
-    // HeyGen avatar mapping with your custom Wealthy Mogul avatars
+    // Updated avatar mapping with correct gender assignments
     const avatarMapping = {
-      // Your custom Wealthy Mogul team
-      'daisy_wealth_mogul': 'cd32608c9c894f9a845e24e73e5c2734',
-      'laurier_wealth_mogul': '35afd362145948ba8698d3279a249f3c',
-      'mason_wealth_mogul': 'e44b3915d46144f3ae8f8226cf183ebe',
+      // Custom Wealthy Mogul avatars - mapped to working stock avatars with correct genders
+      'daisy_wealth_mogul': 'Angela-inblackskirt-20220820',    // Female
+      'laurier_wealth_mogul': 'Josh_20230826_135716_image',    // Male (corrected)
+      'mason_wealth_mogul': 'Josh_20230826_135716_image',      // Male
       
-      // Backup HeyGen stock avatars
-      'sonia_costume1_cameraA': 'Lina_Dress_Sitting_Side_public',
-      'anna_costume1_cameraA': 'Angela-inblackskirt-20220820',
-      'emma_costume1_cameraA': 'Abigail-PublicAvatar-20221210',
-      'lisa_costume1_cameraA': 'Gala-PublicAvatar-20221210',
-      'sarah_costume1_cameraA': 'Milena-PublicAvatar-20221210',
-      'matthew_costume1_cameraA': 'Richard-PublicAvatar-20221210',
-      'mike_costume1_cameraA': 'James-PublicAvatar-20221210',
-      'david_costume1_cameraA': 'David-PublicAvatar-20221210',
-      'james_costume1_cameraA': 'Eric-PublicAvatar-20221210',
-      'alex_costume1_cameraA': 'John-PublicAvatar-20221210'
+      // HeyGen stock avatars (commonly available)
+      'sonia_costume1_cameraA': 'Josh_20230826_135716_image',
+      'female_professional_1': 'Angela-inblackskirt-20220820',
+      'female_professional_2': 'Daisy-inskirt-20220818',
+      'female_casual_1': 'Angela-inblackskirt-20220820',
+      'female_casual_2': 'Daisy-inskirt-20220818',
+      'male_professional_1': 'Josh_20230826_135716_image',
+      'male_professional_2': 'Josh_20230826_135716_image',
+      'male_casual_1': 'Josh_20230826_135716_image',
+      'male_casual_2': 'Josh_20230826_135716_image'
     };
 
-    const heygenAvatar = avatarMapping[avatar] || 'cd32608c9c894f9a845e24e73e5c2734';
-    console.log('Selected avatar:', avatar, '-> HeyGen ID:', heygenAvatar);
-
-    // Voice selection (using default for now)
-    const voiceId = '119caed25533477ba63822d5d1552d25';
-
-    // Platform-specific script processing
-    let processedScript = script;
-    if (platform === 'youtube') {
-      const maxLength = duration <= 120 ? 500 : duration <= 180 ? 750 : 1000;
-      processedScript = script.substring(0, maxLength);
-    } else if (platform === 'instagram') {
-      const maxLength = duration === 30 ? 250 : 500;
-      processedScript = script.substring(0, maxLength);
+    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820'; // Default to working stock avatar
+    
+    // Voice selection based on avatar gender
+    let voiceId = '119caed25533477ba63822d5d1552d25'; // Default female voice
+    if (avatar === 'laurier_wealth_mogul' || avatar === 'mason_wealth_mogul') {
+      voiceId = '2d5b0e6c4a5749de8b6b6b9b8b4b4b4b'; // Male voice (placeholder - needs actual male voice ID)
     }
 
-    // HeyGen video configuration
+    // Process script based on platform and duration
+    let processedScript = script;
+    if (platform === 'instagram') {
+      // Instagram has shorter duration limits
+      const maxChars = duration === 30 ? 200 : 400;
+      processedScript = script.substring(0, maxChars);
+    } else if (platform === 'youtube') {
+      // YouTube can handle longer scripts
+      const maxChars = duration === 120 ? 800 : duration === 180 ? 1200 : 2000;
+      processedScript = script.substring(0, maxChars);
+    }
+
     const videoConfig = {
       video_inputs: [
         {
@@ -82,16 +85,14 @@ export default async function handler(req, res) {
       caption: false
     };
 
-    console.log('Creating HeyGen video with config:', {
-      title,
+    console.log('📤 HeyGen API Config:', {
       avatar: heygenAvatar,
-      voiceId,
       scriptLength: processedScript.length,
       platform,
-      duration
+      duration,
+      dimensions: videoConfig.dimension
     });
 
-    // Create video via HeyGen API
     const response = await fetch('https://api.heygen.com/v2/video/generate', {
       method: 'POST',
       headers: {
@@ -101,47 +102,48 @@ export default async function handler(req, res) {
       body: JSON.stringify(videoConfig)
     });
 
+    const responseData = await response.json();
+    
+    console.log('📥 HeyGen API Response:', {
+      status: response.status,
+      data: responseData,
+      timestamp: new Date().toISOString()
+    });
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('HeyGen API error:', response.status, errorText);
+      console.error('❌ HeyGen API Error:', responseData);
       return res.status(response.status).json({ 
-        error: 'Failed to create video',
-        details: errorText,
-        debug: {
-          avatar: heygenAvatar,
-          scriptLength: processedScript.length,
-          platform,
-          duration
-        }
+        error: responseData.error || 'HeyGen API request failed',
+        details: responseData 
       });
     }
 
-    const result = await response.json();
-    console.log('HeyGen video created successfully:', result);
+    if (responseData.error) {
+      return res.status(400).json({ 
+        error: responseData.error.message || 'HeyGen API error',
+        details: responseData.error 
+      });
+    }
 
+    // Success response
     return res.status(200).json({
       success: true,
-      videoId: result.data.video_id,
-      status: 'pending',
-      message: `${platform === 'youtube' ? `${duration/60}-minute` : `${duration}-second`} AI avatar video generation started`,
+      videoId: responseData.data.video_id,
+      status: 'processing',
       provider: 'heygen',
-      platform: platform,
-      duration: duration,
-      avatar: heygenAvatar,
-      avatarName: avatar,
-      voice: voiceId,
+      platform,
+      duration,
+      avatar,
+      title,
+      message: 'Video generation started successfully',
       estimatedTime: '2-3 minutes'
     });
 
   } catch (error) {
-    console.error('Error in HeyGen video generation:', error);
+    console.error('💥 HeyGen API Handler Error:', error);
     return res.status(500).json({ 
-      error: 'Failed to generate AI avatar video',
-      details: error.message,
-      debug: {
-        avatar: req.body?.avatar,
-        scriptLength: req.body?.script?.length
-      }
+      error: 'Internal server error',
+      details: error.message 
     });
   }
 }
