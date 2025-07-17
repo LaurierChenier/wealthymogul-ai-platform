@@ -22,15 +22,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'HeyGen API key not configured' });
     }
 
-    // Avatar mapping with YOUR CUSTOM AVATARS
+    // Avatar mapping with YOUR ACTUAL CUSTOM AVATARS from HeyGen API
     const avatarMapping = {
-      // Custom Wealthy Mogul avatars - YOUR ACTUAL AVATARS
-      'daisy_wealth_mogul': 'ae573c3333854730a9077d80b53d97e5',     // Daisy (female)
-      'laurier_wealth_mogul': '7f7b982477074c11b8593d0c60690f0a',   // Laurier (male)
-      'mason_wealth_mogul': 'f379aa769b474121a59c128ebdcee2ad',     // Mason (male)
+      // Custom Wealthy Mogul avatars - YOUR ACTUAL TALKING PHOTO IDs
+      'daisy_wealth_mogul': 'ae573c3333854730a9077d80b53d97e5',     // Daisy (talking photo)
+      'laurier_wealth_mogul': '7f7b982477074c11b8593d0c60690f0a',   // Laurier (talking photo)
+      'mason_wealth_mogul': 'f379aa769b474121a59c128ebdcee2ad',     // Mason (talking photo)
       
-      // HeyGen stock avatars (fallback)
-      'sonia_costume1_cameraA': 'Josh_20230826_135716_image',
+      // HeyGen stock avatars (fallback options)
       'female_professional_1': 'Angela-inblackskirt-20220820',
       'female_professional_2': 'Daisy-inskirt-20220818',
       'female_casual_1': 'Angela-inblackskirt-20220820',
@@ -41,20 +40,31 @@ export default async function handler(req, res) {
       'male_casual_2': 'Josh_20230826_135716_image'
     };
 
-    const heygenAvatar = avatarMapping[avatar] || 'ae573c3333854730a9077d80b53d97e5'; // Default to Daisy
+    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820'; // Default to working stock avatar
     
-    // Voice selection based on avatar gender
-    let voiceId = '119caed25533477ba63822d5d1552d25'; // Default female voice
-    if (avatar === 'laurier_wealth_mogul' || avatar === 'mason_wealth_mogul') {
-      voiceId = '2d5b0e6c4a5749de8b6b6b9b8b4b4b4b'; // Male voice (placeholder - needs actual male voice ID)
+    // Determine if this is a talking photo (custom avatar) or regular avatar
+    const isCustomAvatar = avatar.includes('_wealth_mogul');
+    
+    // Voice selection based on avatar gender - using proper male/female voices
+    let voiceId;
+    if (avatar.includes('daisy_wealth_mogul')) {
+      voiceId = 'f8c69e517f424cafaecde32dde57096b'; // Allison - Female voice for Daisy
+    } else if (avatar.includes('laurier_wealth_mogul')) {
+      voiceId = '897d6a9b2c844f56aa077238768fe10a'; // Alex - Male voice for Laurier
+    } else if (avatar.includes('mason_wealth_mogul')) {
+      voiceId = '5d8c378ba8c3434586081a52ac368738'; // Mark - Male voice for Mason
+    } else {
+      voiceId = '1bd001e7e50f421d891986aad5158bc8'; // Default working voice
     }
 
     // Process script based on platform and duration
     let processedScript = script;
     if (platform === 'instagram') {
+      // Instagram has shorter duration limits
       const maxChars = duration === 30 ? 200 : 400;
       processedScript = script.substring(0, maxChars);
     } else if (platform === 'youtube') {
+      // YouTube can handle longer scripts
       const maxChars = duration === 120 ? 800 : duration === 180 ? 1200 : 2000;
       processedScript = script.substring(0, maxChars);
     }
@@ -62,7 +72,13 @@ export default async function handler(req, res) {
     const videoConfig = {
       video_inputs: [
         {
-          character: {
+          character: isCustomAvatar ? {
+            type: 'talking_photo',
+            talking_photo_id: heygenAvatar,
+            talking_photo_style: 'square',
+            talking_style: 'stable',
+            expression: 'default'
+          } : {
             type: 'avatar',
             avatar_id: heygenAvatar,
             avatar_style: 'normal'
@@ -123,6 +139,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Success response
     return res.status(200).json({
       success: true,
       videoId: responseData.data.video_id,
@@ -144,3 +161,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
