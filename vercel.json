@@ -1,9 +1,20 @@
-1|{
-2|  "version": 2,
-3|  "functions": {
-4|    "pages/api/*.js": {
-5|      "maxDuration": 60
-6|    }
-7|  }
-8|}
-
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai_api_key",
+    "EDEN_AI_API_KEY": "@eden_ai_api_key",
+    "RUNWAYML_API_SECRET": "@runwayml_api_secret",
+    "HEYGEN_API_KEY": "@heygen_api_key"
+  },
+  "functions": {
+    "pages/api/*.js": {
+      "maxDuration": 60
+    }
+  }
+}
