@@ -2,26 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  trailingSlash: false,
-  
-  // This is the KEY fix - tell Next.js how to handle different routes
-  async exportPathMap(defaultPathMap, { dev, dir, outDir, distDir, buildId }) {
-    // Remove API routes from static export
-    const pathMap = {}
-    for (const path in defaultPathMap) {
-      if (!path.startsWith('/api/')) {
-        pathMap[path] = defaultPathMap[path]
-      }
-    }
-    return pathMap
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
+      },
+    ]
   },
-  
-  // Alternative approach - disable static optimization for API routes
-  experimental: {
-    outputFileTracingExcludes: {
-      '/api/*': ['./pages/api/**/*'],
-    },
-  }
 }
 
 module.exports = nextConfig
