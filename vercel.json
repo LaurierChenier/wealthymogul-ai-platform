@@ -1,8 +1,9 @@
-{
-  "version": 2,
-  "functions": {
-    "pages/api/*.js": {
-      "maxDuration": 60
-    }
-  }
-}
+1|{
+2|  "version": 2,
+3|  "functions": {
+4|    "pages/api/*.js": {
+5|      "maxDuration": 60
+6|    }
+7|  }
+8|}
+
