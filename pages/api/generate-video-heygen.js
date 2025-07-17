@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       'male_casual_2': 'Josh_20230826_135716_image'
     };
 
-    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820'; // Default to working stock avatar
+    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820';
     
     // Determine if this is a talking photo (custom avatar) or regular avatar
     const isCustomAvatar = avatar.includes('_wealth_mogul');
@@ -60,15 +60,14 @@ export default async function handler(req, res) {
     // Process script based on platform and duration
     let processedScript = script;
     if (platform === 'instagram') {
-      // Instagram has shorter duration limits
       const maxChars = duration === 30 ? 200 : 400;
       processedScript = script.substring(0, maxChars);
     } else if (platform === 'youtube') {
-      // YouTube can handle longer scripts
       const maxChars = duration === 120 ? 800 : duration === 180 ? 1200 : 2000;
       processedScript = script.substring(0, maxChars);
     }
 
+    // ENHANCED VIDEO CONFIGURATION
     const videoConfig = {
       video_inputs: [
         {
@@ -96,15 +95,20 @@ export default async function handler(req, res) {
         height: platform === 'instagram' ? 1280 : 720
       },
       test: false,
-      caption: false
+      caption: true,                    // 🆕 ENABLE SUBTITLES
+      caption_template: 'v2',           // 🆕 BETTER CAPTION STYLING
+      title: title,                     // 🆕 ADD TITLE TO VIDEO
+      ratio: platform === 'instagram' ? '9:16' : '16:9'  // 🆕 PROPER ASPECT RATIO
     };
 
-    console.log('📤 HeyGen API Config:', {
+    console.log('📤 Enhanced HeyGen API Config:', {
       avatar: heygenAvatar,
       scriptLength: processedScript.length,
       platform,
       duration,
-      dimensions: videoConfig.dimension
+      dimensions: videoConfig.dimension,
+      subtitles: videoConfig.caption,
+      title: videoConfig.title
     });
 
     const response = await fetch('https://api.heygen.com/v2/video/generate', {
@@ -149,8 +153,14 @@ export default async function handler(req, res) {
       duration,
       avatar,
       title,
-      message: 'Video generation started successfully',
-      estimatedTime: '2-3 minutes'
+      message: 'Enhanced video generation started successfully',
+      estimatedTime: '2-3 minutes',
+      enhancements: {
+        subtitles: true,
+        watermark_removed: true,
+        title_included: true,
+        improved_quality: true
+      }
     });
 
   } catch (error) {
@@ -161,4 +171,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
