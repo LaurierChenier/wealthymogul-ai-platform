@@ -8,8 +8,6 @@
   ],
   "env": {
     "OPENAI_API_KEY": "@openai_api_key",
-    "EDEN_AI_API_KEY": "@eden_ai_api_key",
-    "RUNWAYML_API_SECRET": "@runwayml_api_secret",
     "HEYGEN_API_KEY": "@heygen_api_key"
   },
   "functions": {
