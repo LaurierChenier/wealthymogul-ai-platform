@@ -555,7 +555,7 @@ export default function HomePage() {
             <div style={{ marginBottom: '20px' }}>
               <h4 style={{ color: '#0066cc', marginBottom: '15px' }}>Choose Video Type & Duration:</h4>
               
-              {/* Avatar Selection */}
+              {/* Avatar Selection - ONLY CUSTOM AVATARS */}
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                   Choose Your AI Avatar:
@@ -573,37 +573,17 @@ export default function HomePage() {
                     minWidth: '250px'
                   }}
                 >
-                  <optgroup label="🏢 Wealthy Mogul Team">
-                    <option value="daisy_wealth_mogul">Daisy from Wealth Mogul</option>
-                    <option value="laurier_wealth_mogul">Laurier from Wealth Mogul</option>
-                    <option value="mason_wealth_mogul">Mason from Wealth Mogul</option>
-                  </optgroup>
-                  <optgroup label="👩 Female Avatars">
-                    <option value="female_professional_1">Professional Businesswoman</option>
-                    <option value="female_professional_2">Executive Style</option>
-                    <option value="female_casual_1">Modern Professional</option>
-                    <option value="female_casual_2">Corporate Presenter</option>
-                  </optgroup>
-                  <optgroup label="👨 Male Avatars">
-                    <option value="male_professional_1">Business Leader</option>
-                    <option value="male_professional_2">Professional Advisor</option>
-                    <option value="male_casual_1">Investment Expert</option>
-                    <option value="male_casual_2">Financial Consultant</option>
-                  </optgroup>
+                  <option value="daisy_wealth_mogul">Daisy from Wealth Mogul</option>
+                  <option value="laurier_wealth_mogul">Laurier from Wealth Mogul</option>
+                  <option value="mason_wealth_mogul">Mason from Wealth Mogul</option>
                 </select>
                 <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                  💡 Preview: <strong>{selectedAvatar.includes('_wealth_mogul') ? 
-                    selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1) + ' from Wealth Mogul' :
-                    selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1)}</strong> will be your video presenter
+                  💡 Preview: <strong>{selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1) + ' from Wealth Mogul'}</strong> will be your video presenter
                   <br />
                   <span style={{ fontSize: '11px', color: '#888' }}>
                     {selectedAvatar.includes('daisy_wealth_mogul') ? '👩 Daisy from Wealth Mogul - Professional financial expert' :
                      selectedAvatar.includes('laurier_wealth_mogul') ? '👨 Laurier from Wealth Mogul - Investment specialist' :
                      selectedAvatar.includes('mason_wealth_mogul') ? '👨 Mason from Wealth Mogul - Real estate professional' :
-                     selectedAvatar.includes('female_professional') ? '👩 Professional businesswoman, confident and engaging' :
-                     selectedAvatar.includes('female_casual') ? '👩 Modern professional, approachable and friendly' :
-                     selectedAvatar.includes('male_professional') ? '👨 Business leader, commanding and professional' :
-                     selectedAvatar.includes('male_casual') ? '👨 Professional advisor, experienced and reliable' :
                      'Professional AI presenter'}
                   </span>
                 </div>
@@ -697,7 +677,7 @@ export default function HomePage() {
                   }}>
                   🎬 YouTube Video ({youtubeLength/60}min)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • AI Avatar • 3-5 mins</small>
                 </button>
                 <button 
                   onClick={handleGenerateInstagramVideo}
@@ -715,7 +695,7 @@ export default function HomePage() {
                   }}>
                   📱 Instagram Video ({instagramLength}sec)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>Synthesia • AI Avatar • 3-5 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • AI Avatar • 3-5 mins</small>
                 </button>
               </div>
               {!editedScript.trim() && (
@@ -759,7 +739,7 @@ export default function HomePage() {
             marginTop: '20px'
           }}>
             <h3 style={{ color: '#0066cc', marginBottom: '15px' }}>
-              {videoGeneration.provider === 'synthesia' ? 'AI Avatar Video Generation Status:' :
+              {videoGeneration.provider === 'heygen' ? 'HeyGen AI Avatar Video Status:' :
                videoGeneration.provider === 'runway' ? 'Professional Video Generation Status:' : 
                'AI Video Generation Status:'}
             </h3>
@@ -767,7 +747,7 @@ export default function HomePage() {
             <div style={{ marginBottom: '10px' }}>
               <strong>Provider:</strong> 
               <span style={{ marginLeft: '8px' }}>
-                {videoGeneration.provider === 'synthesia' ? 'Synthesia (AI Avatar)' : 
+                {videoGeneration.provider === 'heygen' ? 'HeyGen (AI Avatar)' : 
                  videoGeneration.provider === 'runway' ? 'Runway ML (Professional)' : 
                  'Eden AI (Quick)'}
               </span>
@@ -788,6 +768,10 @@ export default function HomePage() {
                   ({videoGeneration.progress}%)
                 </span>
               )}
+            </div>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <strong>Avatar:</strong> {videoGeneration.avatar || 'Default'}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
@@ -959,4 +943,3 @@ export default function HomePage() {
     </div>
   );
 }
-
