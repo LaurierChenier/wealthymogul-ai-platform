@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function HomePage() {
   const [topic, setTopic] = useState('');
@@ -10,7 +10,51 @@ export default function HomePage() {
   const [useOwnScript, setUseOwnScript] = useState(false);
   const [youtubeLength, setYoutubeLength] = useState(120); // Default 2 minutes
   const [instagramLength, setInstagramLength] = useState(30); // Default 30 seconds
-  const [selectedAvatar, setSelectedAvatar] = useState('daisy_wealth_mogul'); // Default to Daisy
+  const [selectedAvatar, setSelectedAvatar] = useState(''); // Will be set after loading
+  const [availableAvatars, setAvailableAvatars] = useState([]);
+  const [isLoadingAvatars, setIsLoadingAvatars] = useState(true);
+
+  // 🆕 AUTOMATIC AVATAR LOADING
+  useEffect(() => {
+    const loadAvatars = async () => {
+      try {
+        console.log('🔄 Loading avatars automatically...');
+        const response = await fetch('/api/load-avatars');
+        const result = await response.json();
+        
+        if (result.success && result.avatars.length > 0) {
+          setAvailableAvatars(result.avatars);
+          // Set default avatar to first available one
+          setSelectedAvatar(result.avatars[0].value);
+          console.log(`✅ Loaded ${result.avatars.length} avatars automatically`);
+        } else {
+          console.error('❌ Failed to load avatars:', result.error);
+          // Fallback to hardcoded avatars if API fails
+          const fallbackAvatars = [
+            { id: 'ae573c3333854730a9077d80b53d97e5', name: 'Daisy', display_name: 'Daisy from Wealth Mogul', value: 'daisy_wealth_mogul', type: 'talking_photo' },
+            { id: '7f7b982477074c11b8593d0c60690f0a', name: 'Laurier', display_name: 'Laurier from Wealth Mogul', value: 'laurier_wealth_mogul', type: 'talking_photo' },
+            { id: 'f379aa769b474121a59c128ebdcee2ad', name: 'Mason', display_name: 'Mason from Wealth Mogul', value: 'mason_wealth_mogul', type: 'talking_photo' }
+          ];
+          setAvailableAvatars(fallbackAvatars);
+          setSelectedAvatar('daisy_wealth_mogul');
+        }
+      } catch (error) {
+        console.error('💥 Avatar loading failed:', error);
+        // Use fallback avatars
+        const fallbackAvatars = [
+          { id: 'ae573c3333854730a9077d80b53d97e5', name: 'Daisy', display_name: 'Daisy from Wealth Mogul', value: 'daisy_wealth_mogul', type: 'talking_photo' },
+          { id: '7f7b982477074c11b8593d0c60690f0a', name: 'Laurier', display_name: 'Laurier from Wealth Mogul', value: 'laurier_wealth_mogul', type: 'talking_photo' },
+          { id: 'f379aa769b474121a59c128ebdcee2ad', name: 'Mason', display_name: 'Mason from Wealth Mogul', value: 'mason_wealth_mogul', type: 'talking_photo' }
+        ];
+        setAvailableAvatars(fallbackAvatars);
+        setSelectedAvatar('daisy_wealth_mogul');
+      } finally {
+        setIsLoadingAvatars(false);
+      }
+    };
+
+    loadAvatars();
+  }, []);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -106,10 +150,13 @@ export default function HomePage() {
   };
 
   const handleGenerateYouTubeVideo = async () => {
-    if (!generatedVideo || !editedScript.trim()) return;
+    if (!generatedVideo || !editedScript.trim() || !selectedAvatar) return;
     
     setIsRetrieving(true);
     try {
+      // Find the selected avatar details
+      const selectedAvatarData = availableAvatars.find(av => av.value === selectedAvatar);
+      
       const response = await fetch('/api/generate-video-heygen', {
         method: 'POST',
         headers: {
@@ -120,7 +167,8 @@ export default function HomePage() {
           script: editedScript,
           duration: youtubeLength,
           platform: 'youtube',
-          avatar: selectedAvatar
+          avatar: selectedAvatar,
+          avatarId: selectedAvatarData?.id // 🆕 DYNAMIC AVATAR ID
         }),
       });
       
@@ -138,10 +186,13 @@ export default function HomePage() {
   };
 
   const handleGenerateInstagramVideo = async () => {
-    if (!generatedVideo || !editedScript.trim()) return;
+    if (!generatedVideo || !editedScript.trim() || !selectedAvatar) return;
     
     setIsRetrieving(true);
     try {
+      // Find the selected avatar details
+      const selectedAvatarData = availableAvatars.find(av => av.value === selectedAvatar);
+      
       const response = await fetch('/api/generate-video-heygen', {
         method: 'POST',
         headers: {
@@ -149,10 +200,11 @@ export default function HomePage() {
         },
         body: JSON.stringify({ 
           title: generatedVideo.title,
-          script: editedScript.substring(0, instagramLength === 30 ? 200 : 400), // Adjust script length based on duration
+          script: editedScript.substring(0, instagramLength === 30 ? 200 : 400),
           duration: instagramLength,
           platform: 'instagram',
-          avatar: selectedAvatar
+          avatar: selectedAvatar,
+          avatarId: selectedAvatarData?.id // 🆕 DYNAMIC AVATAR ID
         }),
       });
       
@@ -357,6 +409,9 @@ export default function HomePage() {
     }
   };
 
+  // Get selected avatar details for display
+  const selectedAvatarData = availableAvatars.find(av => av.value === selectedAvatar);
+
   return (
     <div style={{ 
       fontFamily: 'Arial, sans-serif', 
@@ -555,38 +610,46 @@ export default function HomePage() {
             <div style={{ marginBottom: '20px' }}>
               <h4 style={{ color: '#0066cc', marginBottom: '15px' }}>Choose Video Type & Duration:</h4>
               
-              {/* Avatar Selection - ONLY CUSTOM AVATARS */}
+              {/* 🆕 AUTOMATIC AVATAR SELECTION */}
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                   Choose Your AI Avatar:
                 </label>
-                <select 
-                  value={selectedAvatar} 
-                  onChange={(e) => setSelectedAvatar(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    border: '2px solid #ddd',
-                    borderRadius: '5px',
-                    fontSize: '14px',
-                    marginRight: '10px',
-                    background: '#fff',
-                    minWidth: '250px'
-                  }}
-                >
-                  <option value="daisy_wealth_mogul">Daisy from Wealth Mogul</option>
-                  <option value="laurier_wealth_mogul">Laurier from Wealth Mogul</option>
-                  <option value="mason_wealth_mogul">Mason from Wealth Mogul</option>
-                </select>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                  💡 Preview: <strong>{selectedAvatar.split('_')[0].charAt(0).toUpperCase() + selectedAvatar.split('_')[0].slice(1) + ' from Wealth Mogul'}</strong> will be your video presenter
-                  <br />
-                  <span style={{ fontSize: '11px', color: '#888' }}>
-                    {selectedAvatar.includes('daisy_wealth_mogul') ? '👩 Daisy from Wealth Mogul - Professional financial expert' :
-                     selectedAvatar.includes('laurier_wealth_mogul') ? '👨 Laurier from Wealth Mogul - Investment specialist' :
-                     selectedAvatar.includes('mason_wealth_mogul') ? '👨 Mason from Wealth Mogul - Real estate professional' :
-                     'Professional AI presenter'}
-                  </span>
-                </div>
+                {isLoadingAvatars ? (
+                  <div style={{ padding: '8px 12px', color: '#666' }}>
+                    🔄 Loading your avatars automatically...
+                  </div>
+                ) : (
+                  <select 
+                    value={selectedAvatar} 
+                    onChange={(e) => setSelectedAvatar(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      border: '2px solid #ddd',
+                      borderRadius: '5px',
+                      fontSize: '14px',
+                      marginRight: '10px',
+                      background: '#fff',
+                      minWidth: '250px'
+                    }}
+                  >
+                    {availableAvatars.map(avatar => (
+                      <option key={avatar.value} value={avatar.value}>
+                        {avatar.display_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                
+                {selectedAvatarData && (
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                    💡 Preview: <strong>{selectedAvatarData.display_name}</strong> will be your video presenter
+                    <br />
+                    <span style={{ fontSize: '11px', color: '#888' }}>
+                      🤖 {selectedAvatarData.type === 'talking_photo' ? 'Custom Talking Photo Avatar' : 'Standard Avatar'} • Automatically loaded from your HeyGen account
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* YouTube Duration Selection */}
@@ -663,39 +726,39 @@ export default function HomePage() {
                 </button>
                 <button 
                   onClick={handleGenerateYouTubeVideo}
-                  disabled={isRetrieving || !editedScript.trim()}
+                  disabled={isRetrieving || !editedScript.trim() || isLoadingAvatars}
                   style={{
                     padding: '12px 20px',
-                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#dc3545',
+                    background: (isRetrieving || !editedScript.trim() || isLoadingAvatars) ? '#ccc' : '#dc3545',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
+                    cursor: (isRetrieving || !editedScript.trim() || isLoadingAvatars) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 'bold',
                     minWidth: '160px'
                   }}>
                   🎬 YouTube Video ({youtubeLength/60}min)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • AI Avatar • 3-5 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • Auto Avatars • 3-5 mins</small>
                 </button>
                 <button 
                   onClick={handleGenerateInstagramVideo}
-                  disabled={isRetrieving || !editedScript.trim()}
+                  disabled={isRetrieving || !editedScript.trim() || isLoadingAvatars}
                   style={{
                     padding: '12px 20px',
-                    background: (isRetrieving || !editedScript.trim()) ? '#ccc' : '#e1306c',
+                    background: (isRetrieving || !editedScript.trim() || isLoadingAvatars) ? '#ccc' : '#e1306c',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: (isRetrieving || !editedScript.trim()) ? 'not-allowed' : 'pointer',
+                    cursor: (isRetrieving || !editedScript.trim() || isLoadingAvatars) ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 'bold',
                     minWidth: '160px'
                   }}>
                   📱 Instagram Video ({instagramLength}sec)
                   <br />
-                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • AI Avatar • 3-5 mins</small>
+                  <small style={{ fontSize: '11px', opacity: 0.9 }}>HeyGen • Auto Avatars • 3-5 mins</small>
                 </button>
               </div>
               {!editedScript.trim() && (
@@ -771,7 +834,7 @@ export default function HomePage() {
             </div>
             
             <div style={{ marginBottom: '10px' }}>
-              <strong>Avatar:</strong> {videoGeneration.avatar || 'Default'}
+              <strong>Avatar:</strong> {selectedAvatarData?.display_name || videoGeneration.avatar || 'Default'}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
