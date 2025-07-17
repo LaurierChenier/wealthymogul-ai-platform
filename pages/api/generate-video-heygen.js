@@ -22,28 +22,17 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'HeyGen API key not configured' });
     }
 
-    // Avatar mapping with YOUR ACTUAL CUSTOM AVATARS from HeyGen API
+    // Avatar mapping - ONLY YOUR CUSTOM AVATARS (no failing stock avatars)
     const avatarMapping = {
-      // Custom Wealthy Mogul avatars - YOUR ACTUAL TALKING PHOTO IDs
       'daisy_wealth_mogul': 'ae573c3333854730a9077d80b53d97e5',     // Daisy (talking photo)
       'laurier_wealth_mogul': '7f7b982477074c11b8593d0c60690f0a',   // Laurier (talking photo)
       'mason_wealth_mogul': 'f379aa769b474121a59c128ebdcee2ad',     // Mason (talking photo)
-      
-      // HeyGen stock avatars (fallback options)
-      'female_professional_1': 'Angela-inblackskirt-20220820',
-      'female_professional_2': 'Daisy-inskirt-20220818',
-      'female_casual_1': 'Angela-inblackskirt-20220820',
-      'female_casual_2': 'Daisy-inskirt-20220818',
-      'male_professional_1': 'Josh_20230826_135716_image',
-      'male_professional_2': 'Josh_20230826_135716_image',
-      'male_casual_1': 'Josh_20230826_135716_image',
-      'male_casual_2': 'Josh_20230826_135716_image'
     };
 
-    const heygenAvatar = avatarMapping[avatar] || 'Angela-inblackskirt-20220820';
+    const heygenAvatar = avatarMapping[avatar] || 'ae573c3333854730a9077d80b53d97e5'; // Default to Daisy
     
-    // Determine if this is a talking photo (custom avatar) or regular avatar
-    const isCustomAvatar = avatar.includes('_wealth_mogul');
+    // All custom avatars are talking photos
+    const isCustomAvatar = true;
     
     // Voice selection based on avatar gender - using proper male/female voices
     let voiceId;
@@ -54,7 +43,7 @@ export default async function handler(req, res) {
     } else if (avatar.includes('mason_wealth_mogul')) {
       voiceId = '5d8c378ba8c3434586081a52ac368738'; // Mark - Male voice for Mason
     } else {
-      voiceId = '1bd001e7e50f421d891986aad5158bc8'; // Default working voice
+      voiceId = 'f8c69e517f424cafaecde32dde57096b'; // Default to Daisy's voice
     }
 
     // Process script based on platform and duration
@@ -67,20 +56,16 @@ export default async function handler(req, res) {
       processedScript = script.substring(0, maxChars);
     }
 
-    // ENHANCED VIDEO CONFIGURATION
+    // ENHANCED VIDEO CONFIGURATION - All custom avatars use talking_photo type
     const videoConfig = {
       video_inputs: [
         {
-          character: isCustomAvatar ? {
+          character: {
             type: 'talking_photo',
             talking_photo_id: heygenAvatar,
             talking_photo_style: 'square',
             talking_style: 'stable',
             expression: 'default'
-          } : {
-            type: 'avatar',
-            avatar_id: heygenAvatar,
-            avatar_style: 'normal'
           },
           voice: {
             type: 'text',
@@ -159,7 +144,7 @@ export default async function handler(req, res) {
         subtitles: true,
         watermark_removed: true,
         title_included: true,
-        improved_quality: true
+        custom_avatars_only: true
       }
     });
 
