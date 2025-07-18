@@ -1,23 +1,19 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ code: 'METHOD_NOT_ALLOWED', message: 'Only POST requests are allowed.' });
   }
 
   const { prompt, platform = 'youtube' } = req.body;
-  
   if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+    return res.status(400).json({ code: 'PROMPT_REQUIRED', message: 'Prompt is required.' });
   }
 
   const openaiApiKey = process.env.OPENAI_API_KEY;
-  
   if (!openaiApiKey) {
-    return res.status(500).json({ error: 'OpenAI API key not configured' });
+    return res.status(500).json({ code: 'OPENAI_API_KEY_MISSING', message: 'OpenAI API key not configured.' });
   }
 
   try {
-    console.log('🎨 Generating image with DALL-E...');
-    
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -34,9 +30,8 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    
+
     if (response.ok && data.data && data.data[0]) {
-      console.log('✅ Image generated successfully');
       return res.status(200).json({
         success: true,
         imageUrl: data.data[0].url,
@@ -44,17 +39,16 @@ export default async function handler(req, res) {
         platform: platform
       });
     } else {
-      console.error('❌ Image generation failed:', data);
-      return res.status(response.status).json({ 
-        error: data.error?.message || 'Image generation failed',
+      return res.status(response.status).json({
+        code: 'OPENAI_IMAGE_ERROR',
+        message: data.error?.message || 'Image generation failed.',
         details: data
       });
     }
-
   } catch (error) {
-    console.error('💥 Server Error:', error);
-    return res.status(500).json({ 
-      error: 'Server error',
+    return res.status(500).json({
+      code: 'SERVER_ERROR',
+      message: 'Unexpected server error.',
       details: error.message
     });
   }
