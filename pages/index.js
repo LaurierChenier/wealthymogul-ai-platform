@@ -234,19 +234,25 @@ export default function EnhancedVideoGenerator() {
         </div>
       )}
 
-      {/* Custom Script Mode */}
-      {scriptMode === 'custom' && (
-        <div style={{ marginBottom: '20px' }}>
-          <label>Custom Title:</label>
-          <input
-            type="text"
-            value={customTitle}
-            onChange={(e) => setCustomTitle(e.target.value)}
-            placeholder="Enter your video title..."
-            style={{ width: '100%', padding: '10px', marginTop: '5px', border: '1px solid #ddd', borderRadius: '4px' }}
-          />
-        </div>
-      )}
+     {scriptMode === 'custom' && (
+  <div style={{ marginBottom: '20px' }}>
+    <label>Custom Title:</label>
+    <input
+      type="text"
+      value={customTitle}
+      onChange={(e) => setCustomTitle(e.target.value)}
+      placeholder="Enter your video title..."
+      style={{ width: '100%', padding: '10px', marginTop: '5px', border: '1px solid #ddd', borderRadius: '4px' }}
+    />
+    <label style={{ marginTop: '15px', display: 'block' }}>Custom Script:</label>
+    <textarea
+      value={script}
+      onChange={(e) => setScript(e.target.value)}
+      placeholder="Paste or write your video script here..."
+      style={{ width: '100%', padding: '10px', marginTop: '5px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '200px' }}
+    />
+  </div>
+)}
 
       {/* Graphics Generation Section */}
       <div style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
