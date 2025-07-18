@@ -1,38 +1,26 @@
-# Create enhanced API route for image + video generation
-api_code = '''
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ code: 'METHOD_NOT_ALLOWED', message: 'Only POST requests are allowed.' });
   }
 
-  const { 
-    title, 
-    script, 
-    duration = 120, 
-    platform = 'youtube', 
-    avatar = 'daisy_wealth_mogul',
-    graphicsPrompt = null,
-    useGraphics = false
-  } = req.body;
-  
+  const { title, script, duration = 120, platform = 'youtube', avatar = 'daisy_wealth_mogul', graphicsPrompt = null, useGraphics = false, backgroundImageUrl = null } = req.body;
+
   if (!title || !script) {
-    return res.status(400).json({ error: 'Title and script required' });
+    return res.status(400).json({ code: 'TITLE_SCRIPT_REQUIRED', message: 'Title and script are required.' });
   }
 
   const heygenApiKey = process.env.HEYGEN_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
-  
+
   if (!heygenApiKey) {
-    return res.status(500).json({ error: 'HeyGen API key not configured' });
+    return res.status(500).json({ code: 'HEYGEN_API_KEY_MISSING', message: 'HeyGen API key not configured.' });
   }
 
   try {
-    let backgroundImageUrl = null;
+    let backgroundImage = backgroundImageUrl;
 
-    // Step 1: Generate image if graphics prompt provided
-    if (useGraphics && graphicsPrompt && openaiApiKey) {
-      console.log('🎨 Generating image with DALL-E...');
-      
+    // Generate image if needed
+    if (useGraphics && graphicsPrompt && openaiApiKey && !backgroundImage) {
       const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -49,23 +37,25 @@ export default async function handler(req, res) {
       });
 
       const imageData = await imageResponse.json();
-      
       if (imageResponse.ok && imageData.data && imageData.data[0]) {
-        backgroundImageUrl = imageData.data[0].url;
-        console.log('✅ Image generated:', backgroundImageUrl);
+        backgroundImage = imageData.data[0].url;
       } else {
-        console.error('❌ Image generation failed:', imageData);
+        return res.status(imageResponse.status).json({
+          code: 'OPENAI_IMAGE_ERROR',
+          message: imageData.error?.message || 'Image generation failed.',
+          details: imageData
+        });
       }
     }
 
-    // Step 2: Generate video with HeyGen (your existing logic)
-    const avatarId = avatar === 'laurier_wealth_mogul' ? '7f7b982477074c11b8593d0c60690f0a' : 
-                     avatar === 'mason_wealth_mogul' ? 'f379aa769b474121a59c128ebdcee2ad' : 
-                     'ae573c3333854730a9077d80b53d97e5';
+    // Avatar and voice mapping
+    const avatarId = avatar === 'laurier_wealth_mogul' ? '7f7b982477074c11b8593d0c60690f0a' :
+      avatar === 'mason_wealth_mogul' ? 'f379aa769b474121a59c128ebdcee2ad' :
+        'ae573c3333854730a9077d80b53d97e5';
 
-    const voiceId = avatar === 'laurier_wealth_mogul' ? '897d6a9b2c844f56aa077238768fe10a' : 
-                    avatar === 'mason_wealth_mogul' ? '5d8c378ba8c3434586081a52ac368738' : 
-                    'f8c69e517f424cafaecde32dde57096b';
+    const voiceId = avatar === 'laurier_wealth_mogul' ? '897d6a9b2c844f56aa077238768fe10a' :
+      avatar === 'mason_wealth_mogul' ? '5d8c378ba8c3434586081a52ac368738' :
+        'f8c69e517f424cafaecde32dde57096b';
 
     const videoConfig = {
       video_inputs: [{
@@ -92,20 +82,12 @@ export default async function handler(req, res) {
       title: title
     };
 
-    // Add background image if generated
-    if (backgroundImageUrl) {
+    if (backgroundImage) {
       videoConfig.background = {
         type: 'image',
-        url: backgroundImageUrl
+        url: backgroundImage
       };
     }
-
-    console.log('🔍 HeyGen Request:', { 
-      avatarId, 
-      voiceId, 
-      scriptLength: script.length,
-      hasBackground: !!backgroundImageUrl 
-    });
 
     const response = await fetch('https://api.heygen.com/v2/video/generate', {
       method: 'POST',
@@ -117,13 +99,11 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    
-    console.log('📥 HeyGen Response:', { status: response.status, data });
 
     if (!response.ok) {
-      console.error('❌ HeyGen API Error:', data);
-      return res.status(response.status).json({ 
-        error: data.error || 'HeyGen API request failed',
+      return res.status(response.status).json({
+        code: 'HEYGEN_API_ERROR',
+        message: data.error || 'HeyGen API request failed.',
         details: data,
         config: videoConfig
       });
@@ -138,14 +118,14 @@ export default async function handler(req, res) {
       duration,
       avatar,
       title,
-      backgroundImage: backgroundImageUrl,
+      backgroundImage,
       message: 'Video generation started successfully'
     });
 
   } catch (error) {
-    console.error('💥 Server Error:', error);
-    return res.status(500).json({ 
-      error: 'Server error',
+    return res.status(500).json({
+      code: 'SERVER_ERROR',
+      message: 'Unexpected server error.',
       details: error.message
     });
   }
