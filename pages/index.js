@@ -11,15 +11,15 @@ export default function EnhancedVideoGenerator() {
   const [duration, setDuration] = useState(120);
   const [scriptMode, setScriptMode] = useState('ai');
   const [customTitle, setCustomTitle] = useState('');
-  
-  // New graphics states
+
+  // Graphics states
   const [graphicsPrompt, setGraphicsPrompt] = useState('');
   const [useGraphics, setUseGraphics] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [savedImages, setSavedImages] = useState([]);
   const [selectedSavedImage, setSelectedSavedImage] = useState(null);
   const [showImageLibrary, setShowImageLibrary] = useState(false);
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [videoResult, setVideoResult] = useState(null);
@@ -78,7 +78,7 @@ export default function EnhancedVideoGenerator() {
         setTitle(data.title);
         setDescription(data.description);
         setTags(data.tags);
-        
+
         // Auto-generate graphics prompt based on the topic
         const autoGraphicsPrompt = `Professional infographic about ${topic}, clean modern design, real estate themed, educational style`;
         setGraphicsPrompt(autoGraphicsPrompt);
