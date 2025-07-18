@@ -23,7 +23,7 @@ export default function EnhancedVideoGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [videoResult, setVideoResult] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
   // Load saved images on component mount
   useEffect(() => {
@@ -57,12 +57,12 @@ export default function EnhancedVideoGenerator() {
 
   const generateContent = async () => {
     if (!topic.trim()) {
-      setError('Please enter a topic');
+      setError({ code: 'TOPIC_REQUIRED', message: 'Please enter a topic.' });
       return;
     }
 
     setIsGenerating(true);
-    setError('');
+    setError(null);
 
     try {
       const response = await fetch('/api/generate', {
@@ -83,10 +83,10 @@ export default function EnhancedVideoGenerator() {
         const autoGraphicsPrompt = `Professional infographic about ${topic}, clean modern design, real estate themed, educational style`;
         setGraphicsPrompt(autoGraphicsPrompt);
       } else {
-        setError(data.error || 'Failed to generate content');
+        setError(data);
       }
     } catch (error) {
-      setError('Network error occurred');
+      setError({ code: 'NETWORK_ERROR', message: 'Network error occurred.' });
     } finally {
       setIsGenerating(false);
     }
@@ -94,12 +94,12 @@ export default function EnhancedVideoGenerator() {
 
   const generateImage = async () => {
     if (!graphicsPrompt.trim()) {
-      setError('Please enter a graphics prompt');
+      setError({ code: 'GRAPHICS_PROMPT_REQUIRED', message: 'Please enter a graphics prompt.' });
       return;
     }
 
     setIsGenerating(true);
-    setError('');
+    setError(null);
 
     try {
       const response = await fetch('/api/generate-image', {
@@ -115,26 +115,25 @@ export default function EnhancedVideoGenerator() {
 
       if (response.ok && data.imageUrl) {
         setGeneratedImage(data.imageUrl);
-        // Auto-save to library
         saveImageToLibrary(data.imageUrl, graphicsPrompt);
       } else {
-        setError(data.error || 'Failed to generate image');
+        setError(data);
       }
     } catch (error) {
-      setError('Network error occurred');
+      setError({ code: 'NETWORK_ERROR', message: 'Network error occurred.' });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const generateVideo = async () => {
-    if (!script.trim() || !title.trim()) {
-      setError('Script and title are required');
+    if (!script.trim() || !(scriptMode === 'custom' ? customTitle.trim() : title.trim())) {
+      setError({ code: 'SCRIPT_TITLE_REQUIRED', message: 'Script and title are required.' });
       return;
     }
 
     setIsGeneratingVideo(true);
-    setError('');
+    setError(null);
     setVideoResult(null);
 
     try {
@@ -160,10 +159,10 @@ export default function EnhancedVideoGenerator() {
       if (response.ok) {
         setVideoResult(data);
       } else {
-        setError(data.error || 'Failed to generate video');
+        setError(data);
       }
     } catch (error) {
-      setError('Network error occurred');
+      setError({ code: 'NETWORK_ERROR', message: 'Network error occurred.' });
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -459,7 +458,7 @@ export default function EnhancedVideoGenerator() {
       {/* Error Display */}
       {error && (
         <div style={{ padding: '15px', backgroundColor: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb', borderRadius: '5px', marginBottom: '20px' }}>
-          {error}
+          <strong>{error.code || 'ERROR'}:</strong> {error.message || (typeof error === 'string' ? error : JSON.stringify(error))}
         </div>
       )}
 
